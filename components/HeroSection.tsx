@@ -76,7 +76,7 @@ export default function HeroSection() {
           "--mask-scale": 8.55, // Initial scale from logs
           "--mask-image": `url(${ASSETS.maskImage})`,
           backgroundColor: "rgb(0, 224, 19)", // Cash App Green
-        }}
+        } as React.CSSProperties}
       >
         <div 
           ref={bgRef}

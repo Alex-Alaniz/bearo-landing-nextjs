@@ -9,7 +9,13 @@ const MASK_URL = "https://cash-f.squarecdn.com/web/marketing/9f08d4c9b2ac3153552
 // --- Sub-Components ---
 
 // 1. The Masked Video Component (The "Portal")
-const PortalVideo = React.forwardRef(({ src, poster, isVisible = true }, ref) => {
+interface PortalVideoProps {
+  src: string;
+  poster?: string;
+  isVisible?: boolean;
+}
+
+const PortalVideo = React.forwardRef<HTMLVideoElement, PortalVideoProps>(({ src, poster, isVisible = true }, ref) => {
   return (
     <div 
       className="relative w-[290px] h-[625px] mx-auto z-10 transition-opacity duration-300"
@@ -22,7 +28,7 @@ const PortalVideo = React.forwardRef(({ src, poster, isVisible = true }, ref) =>
         WebkitMaskRepeat: 'no-repeat',
         maskRepeat: 'no-repeat',
         opacity: isVisible ? 1 : 0
-      }}
+      } as React.CSSProperties}
     >
       <div className="w-full h-full bg-black">
         <video
@@ -43,7 +49,20 @@ const PortalVideo = React.forwardRef(({ src, poster, isVisible = true }, ref) =>
   );
 });
 
+PortalVideo.displayName = 'PortalVideo';
+
 // 2. Generic Section Layout (Matches the 3-column grid)
+interface SectionLayoutProps {
+  id: string;
+  leftContent: React.ReactNode;
+  rightContent: React.ReactNode;
+  videoSrc: string;
+  posterSrc?: string;
+  videoRef?: React.Ref<HTMLVideoElement>;
+  textRefLeft?: React.Ref<HTMLDivElement>;
+  textRefRight?: React.Ref<HTMLDivElement>;
+}
+
 const SectionLayout = ({ 
   id, 
   leftContent, 
@@ -53,7 +72,7 @@ const SectionLayout = ({
   videoRef,
   textRefLeft,
   textRefRight
-}) => {
+}: SectionLayoutProps) => {
   return (
     <section 
       data-scroll-section 
@@ -89,16 +108,16 @@ const SectionLayout = ({
 
 const CashAppPage = () => {
   // Refs for animating elements
-  const securityVideoRef = useRef(null);
-  const securityLeftRef = useRef(null);
-  const securityRightRef = useRef(null);
+  const securityVideoRef = useRef<HTMLVideoElement>(null);
+  const securityLeftRef = useRef<HTMLDivElement>(null);
+  const securityRightRef = useRef<HTMLDivElement>(null);
 
-  const reviewsVideoRef = useRef(null);
-  const reviewsLeftRef = useRef(null);
-  const reviewsRightRef = useRef(null);
+  const reviewsVideoRef = useRef<HTMLVideoElement>(null);
+  const reviewsLeftRef = useRef<HTMLDivElement>(null);
+  const reviewsRightRef = useRef<HTMLDivElement>(null);
 
   // The Animation Orchestrator
-  const handleSectionChange = (fromIndex, toIndex) => {
+  const handleSectionChange = (fromIndex: number, toIndex: number) => {
     // We only care about animating between specific sections here
     // 0 = Security, 1 = Reviews
 

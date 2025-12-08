@@ -7,7 +7,15 @@ import SmoothScrollManager from '@/components/SmoothScrollManager';
 import SharedPortal from '@/components/SharedPortal';
 
 // Reusable Layout for Text (No Video Here!)
-const TextSection = ({ id, leftContent, rightContent, textRefLeft, textRefRight }) => {
+interface TextSectionProps {
+  id: string;
+  leftContent: React.ReactNode;
+  rightContent: React.ReactNode;
+  textRefLeft: React.Ref<HTMLDivElement>;
+  textRefRight: React.Ref<HTMLDivElement>;
+}
+
+const TextSection = ({ id, leftContent, rightContent, textRefLeft, textRefRight }: TextSectionProps) => {
   return (
     <section 
       data-scroll-section 
@@ -42,18 +50,18 @@ const CashAppPage = () => {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
 
   // Text Refs for GSAP
-  const securityLeftRef = useRef(null);
-  const securityRightRef = useRef(null);
-  const reviewsLeftRef = useRef(null);
-  const reviewsRightRef = useRef(null);
+  const securityLeftRef = useRef<HTMLDivElement>(null);
+  const securityRightRef = useRef<HTMLDivElement>(null);
+  const reviewsLeftRef = useRef<HTMLDivElement>(null);
+  const reviewsRightRef = useRef<HTMLDivElement>(null);
 
-  const handleSectionChange = (fromIndex, toIndex) => {
+  const handleSectionChange = (fromIndex: number, toIndex: number) => {
     setActiveSectionIndex(toIndex);
 
     const tl = gsap.timeline();
 
     // Helper to get refs based on index
-    const getRefs = (idx) => idx === 0 ? [securityLeftRef.current, securityRightRef.current] : [reviewsLeftRef.current, reviewsRightRef.current];
+    const getRefs = (idx: number) => idx === 0 ? [securityLeftRef.current, securityRightRef.current] : [reviewsLeftRef.current, reviewsRightRef.current];
 
     const outgoingRefs = getRefs(fromIndex);
     const incomingRefs = getRefs(toIndex);

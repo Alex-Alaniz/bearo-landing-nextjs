@@ -16,7 +16,11 @@ const VIDEOS = [
   }
 ];
 
-const SharedPortal = ({ activeIndex }) => {
+interface SharedPortalProps {
+  activeIndex: number;
+}
+
+const SharedPortal = ({ activeIndex }: SharedPortalProps) => {
   const containerRef = useRef(null);
   const baseVideoRef = useRef(null); // Video 0
   const overlayVideoRef = useRef(null); // Video 1

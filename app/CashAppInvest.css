@@ -437,7 +437,7 @@ footer [data-disclosure] a {
   position: fixed;
   z-index: 3;
   width: 100vw;
-  background: #00d54b;
+  background: var(--primary);
   color: #fff;
   font-size: 25px;
   line-height: 52px;
@@ -478,7 +478,7 @@ footer [data-disclosure] a {
   will-change: transform;
 }
 [data-chapter="loader"] {
-  background-color: #00d54b;
+  background-color: var(--primary);
 }
 [data-chapter="loader"] svg {
   width: 21px;
@@ -559,7 +559,7 @@ footer [data-disclosure] a {
 }
 [data-chapter="now"] {
   visibility: hidden;
-  color: #00d54b;
+  color: var(--primary);
   background-color: #000;
   font-size: 117px;
 }
@@ -594,7 +594,7 @@ footer [data-disclosure] a {
 }
 [data-chapter="you"] {
   visibility: hidden;
-  color: #00d54b;
+  color: var(--primary);
   background-color: #f2f2f2;
   font-size: 117px;
 }
@@ -681,7 +681,7 @@ footer [data-disclosure] a {
   position: absolute;
   left: 50%;
   top: 50%;
-  background: #00d54b;
+  background: var(--primary);
   width: var(--ms);
   height: var(--ms);
   -webkit-transform: translate3d(-50%, -50%, 0);
@@ -732,7 +732,7 @@ footer [data-disclosure] a {
   margin-bottom: -10px;
 }
 [data-chapter="invest"] [data-character]:nth-child(odd) {
-  color: #00d54b;
+  color: var(--primary);
 }
 [data-chapter="graph"] {
   visibility: hidden;
@@ -853,7 +853,7 @@ footer [data-disclosure] a {
 }
 [data-chapter="cta"] {
   visibility: hidden;
-  background-color: #00d54b;
+  background-color: var(--primary);
   letter-spacing: -0.6px;
   text-align: center;
   font-size: 34px;

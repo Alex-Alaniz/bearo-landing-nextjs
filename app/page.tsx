@@ -1,11 +1,11 @@
 "use client";
 import React, { useRef, useState } from 'react';
 import './CashAppInvest.css';
-import { useCashAppAnimations } from './hooks/useCashAppAnimations';
+import { useCashAppAnimations } from '../hooks/useCashAppAnimations';
 import { 
   EyeballIcon, MenuIcon, LogoIcon, ArrowIcon, 
   AppStoreIcon, GooglePlayIcon, TwitterIcon, InstagramIcon 
-} from './components/Icons';
+} from '../components/Icons';
 
 const CashAppInvest = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -13,7 +13,7 @@ const CashAppInvest = () => {
   const timelineRef = useCashAppAnimations(containerRef);
 
   // Constants for colors
-  const GREEN = '#00D54B';
+  const BRAND_COLOR = '#f97316';
 
   // Menu Handling
   const toggleMenu = (e: React.MouseEvent) => {
@@ -42,7 +42,7 @@ const CashAppInvest = () => {
 
         if (logos && logos.querySelector('a')) logos.querySelector('a')!.style.color = 'white';
         if (jewel) jewel.style.fill = 'white';
-        if (cutout) cutout.style.fill = GREEN;
+        if (cutout) cutout.style.fill = BRAND_COLOR;
         if (menuLink) menuLink.style.color = 'white';
         if (signInLink) signInLink.style.color = 'white';
         if (myFirstLink) myFirstLink.style.color = 'white';
@@ -68,8 +68,6 @@ const CashAppInvest = () => {
 
   return (
     <div ref={containerRef}>
-      <link rel="stylesheet" type="text/css" href="https://cash-f.squarecdn.com/ember/48e0bff4be493d4293e1a2dfa777c71ece92c0a0/assets/home-stocks.css" crossOrigin="anonymous" />
-
       <main>
         <header data-grid>
           <div data-logos>
@@ -103,10 +101,10 @@ const CashAppInvest = () => {
           <span data-character="y">PAY</span>
           <span data-character="o">ME</span>
           <span data-character="u">NTS</span>
-          <img data-stairs alt="Stairs" src="https://cash-f.squarecdn.com/ember/48e0bff4be493d4293e1a2dfa777c71ece92c0a0/assets/images/marketing/home-stocks/stairs.png"/>
-          <img data-cube alt="Cube" src="https://cash-f.squarecdn.com/ember/48e0bff4be493d4293e1a2dfa777c71ece92c0a0/assets/images/marketing/home-stocks/cube.png"/>
-          <img data-blocks alt="Blocks" src="https://cash-f.squarecdn.com/ember/48e0bff4be493d4293e1a2dfa777c71ece92c0a0/assets/images/marketing/home-stocks/blocks.png"/>
-          <img data-sphere alt="Sphere" src="https://cash-f.squarecdn.com/ember/48e0bff4be493d4293e1a2dfa777c71ece92c0a0/assets/images/marketing/home-stocks/sphere.png"/>
+          <img data-stairs alt="Stairs" src="/stairs.png"/>
+          <img data-cube alt="Cube" src="/cube.png"/>
+          <img data-blocks alt="Blocks" src="/blocks.png"/>
+          <img data-sphere alt="Sphere" src="/sphere.png"/>
         </section>
 
         <section data-chapter="can">
@@ -147,36 +145,36 @@ const CashAppInvest = () => {
             <h3>Learn more with <br/>My First Stock</h3>
           </a>
           <div data-apps>
-            <a href="https://itunes.apple.com/us/app/square-cash/id711923939?pt=302818&mt=8&ct=cash-web-home">
+            <a href="">
               <AppStoreIcon />
               <span>App Store</span>
             </a>
-            <a href="https://play.google.com/store/apps/details?id=com.squareup.cash&utm_source=cash-web-home&utm_medium=web">
+            <a href="">
               <GooglePlayIcon />
               <span>Google Play</span>
             </a>
           </div>
           <div data-social>
-            <a data-twitter href="https://twitter.com/cashapp">
+            <a data-twitter href="https://x.com/BearifiedCo">
               <TwitterIcon />
             </a>
-            <a data-ig href="https://instagram.com/cashapp">
+            <a data-ig href="">
               <InstagramIcon />
             </a>
           </div>
-          <p data-disclosure>Brokerage services by Cash App Investing LLC, member <a href="https://www.finra.org" target="_blank" rel="noreferrer">FINRA</a> / <a href="https://www.sipc.org/" target="_blank" rel="noreferrer">SIPC</a>. <br/>See our <a href="https://brokercheck.finra.org/firm/summary/144076" target="_blank" rel="noreferrer">BrokerCheck</a>. Investing involves risk; you may lose money.</p>
+          <p data-disclosure>BearifiedCo LLC. Investing involves risk; you may lose money.</p>
         </footer>
 
         <nav data-modal="menu">
           <ul>
             <li><a data-menu-stock-link href="/stocks">My First Stock</a></li>
-            <li><a href="/account">Sign In</a></li>
-            <li><a href="https://cash.app/legal/us/en-us/tos">Legal</a></li>
-            <li><a href="https://squareup.com/legal/licenses">Licenses</a></li>
-            <li><a href="/security">Security</a></li>
-            <li><a href="/careers">Careers</a></li>
-            <li><a href="/press">Press</a></li>
-            <li><a href="/help">Support</a></li>
+            <li><a href="/">Sign In</a></li>
+            <li><a href="/">Legal</a></li>
+            <li><a href="/">Licenses</a></li>
+            <li><a href="/">Security</a></li>
+            <li><a href="/">Careers</a></li>
+            <li><a href="/">Press</a></li>
+            <li><a href="/">Support</a></li>
           </ul>
         </nav>
       </main>

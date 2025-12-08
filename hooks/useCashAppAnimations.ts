@@ -5,7 +5,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
   const timelineRef = useRef<any>(null);
 
   // Constants for colors
-  const GREEN = '#00D54B';
+  const BRAND_COLOR = '#f97316';
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -151,7 +151,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
           onBegin: () => {
               now.style.visibility = 'visible';
               if (logoLink) logoLink.style.color = 'white';
-              if (jewel) jewel.style.fill = GREEN;
+              if (jewel) jewel.style.fill = BRAND_COLOR;
               if (cutout) cutout.style.fill = 'white';
               if (menuLink) menuLink.style.color = 'white';
               if (signInLink) signInLink.style.color = 'white';
@@ -205,7 +205,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
                 appLinks.querySelectorAll('a').forEach((link: any) => {
                   link.style.color = 'black';
                   link.style.borderColor = 'black';
-                  link.querySelector('svg')!.style.color = GREEN;
+                  link.querySelector('svg')!.style.color = BRAND_COLOR;
                 });
               }
               if (socialLinks) socialLinks.querySelectorAll('a').forEach((link: any) => link.style.color = 'black');
@@ -278,7 +278,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
               can.style.visibility = 'visible';
               if (logoLink) logoLink.style.color = 'white';
               if (jewel) jewel.style.fill = 'white';
-              if (cutout) cutout.style.fill = GREEN;
+              if (cutout) cutout.style.fill = BRAND_COLOR;
               if (menuLink) menuLink.style.color = 'white';
               if (signInLink) signInLink.style.color = 'white';
               if (myFirstLink) myFirstLink.style.color = 'white';

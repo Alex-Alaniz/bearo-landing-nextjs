@@ -41,6 +41,12 @@ function SmoothScrollManager({ children, onSectionChange }) {
   const isScrollingRef = useRef(false);
   const scrollEnabledRef = useRef(false);
 
+  // Keep latest callback in a ref to avoid re-creating scrollToSection
+  const onSectionChangeRef = useRef(onSectionChange);
+  useEffect(() => {
+    onSectionChangeRef.current = onSectionChange;
+  }, [onSectionChange]);
+
   // Use the custom hook defined above
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
@@ -62,8 +68,8 @@ function SmoothScrollManager({ children, onSectionChange }) {
       return;
     }
 
-    if (onSectionChange) {
-        onSectionChange(currentSectionIndexRef.current, sectionIndex);
+    if (onSectionChangeRef.current) {
+        onSectionChangeRef.current(currentSectionIndexRef.current, sectionIndex);
     }
 
     isScrollingRef.current = true;
@@ -89,7 +95,7 @@ function SmoothScrollManager({ children, onSectionChange }) {
         isScrollingRef.current = false;
       }
     });
-  }, [onSectionChange]);
+  }, []); // Dependencies removed: onSectionChange is accessed via ref
 
   const handleWheel = useCallback((event) => {
     if (!scrollEnabledRef.current || isScrollingRef.current) return;

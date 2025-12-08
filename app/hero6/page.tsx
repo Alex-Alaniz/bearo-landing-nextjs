@@ -1,7 +1,7 @@
 // app/hero4/page.jsx (or wherever your route is)
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import SmoothScrollManager from '@/components/SmoothScrollManager';
 import SharedPortal from '@/components/SharedPortal';
@@ -55,7 +55,7 @@ const CashAppPage = () => {
   const reviewsLeftRef = useRef<HTMLDivElement>(null);
   const reviewsRightRef = useRef<HTMLDivElement>(null);
 
-  const handleSectionChange = (fromIndex: number, toIndex: number) => {
+  const handleSectionChange = useCallback((fromIndex: number, toIndex: number) => {
     setActiveSectionIndex(toIndex);
 
     const tl = gsap.timeline();
@@ -66,26 +66,32 @@ const CashAppPage = () => {
     const outgoingRefs = getRefs(fromIndex);
     const incomingRefs = getRefs(toIndex);
 
-    // 1. Animate Outgoing Text (Move UP and Fade Out)
+    // Determine direction: 1 for down (next), -1 for up (prev)
+    const direction = toIndex > fromIndex ? 1 : -1;
+    const yOffset = 100;
+
+    // 1. Animate Outgoing Text
     tl.to(outgoingRefs, {
-      y: -100,
+      y: -yOffset * direction, // Move UP if scrolling down, Move DOWN if scrolling up
       opacity: 0,
       duration: 0.8,
-      ease: "power2.inOut"
+      ease: "power3.inOut", // Match scroll easing
+      overwrite: "auto"
     }, 0);
 
-    // 2. Animate Incoming Text (Come from DOWN and Fade In)
+    // 2. Animate Incoming Text
     tl.fromTo(incomingRefs, {
-      y: 100,
+      y: yOffset * direction, // Enter from DOWN if scrolling down, Enter from UP if scrolling up
       opacity: 0
     }, {
       y: 0,
       opacity: 1,
       duration: 1.0,
-      ease: "power3.out",
+      ease: "power3.inOut", // Match scroll easing
       stagger: 0.1, // Left text moves slightly before right text
+      overwrite: "auto"
     }, 0.2);
-  };
+  }, []);
 
   return (
     <div className="bg-black min-h-screen text-white">

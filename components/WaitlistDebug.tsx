@@ -79,7 +79,7 @@ export const WaitlistDebug: React.FC = () => {
         )}
         
         <div className="mt-2 text-white/30 text-[9px]">
-          Env: {import.meta.env.VITE_THIRDWEB_CLIENT_ID ? '✅ Configured' : '❌ Missing'}
+          Env: {process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID ? '✅ Configured' : '❌ Missing'}
         </div>
       </div>
     </div>

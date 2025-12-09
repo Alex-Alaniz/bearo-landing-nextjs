@@ -27,7 +27,7 @@ const steps: Step[] = [
     title: 'Earn BEARCO Points.',
     description:
       'Every send, spend, and friend earns you points. Redeem for perks and boosts—the more you use Bearo, the sweeter it gets.',
-    mediaSrc: '/screen4.jpg',
+    mediaSrc: '/images/BearifiedXYZ.png',
     imagePosition: 'left',
   },
   {

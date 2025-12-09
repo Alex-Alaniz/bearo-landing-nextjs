@@ -1,11 +1,9 @@
 "use client";
 import React from 'react';
 import { Hero } from './Hero';
-import { FeatureSection } from './FeatureSection';
 import { HowItWorks } from './HowItWorks';
 import { SpendSection } from './SpendSection';
 import { Footer } from './Footer';
-import { TierRoadmap } from './TierRoadmap';
 
 export const BearoContent: React.FC = () => {
   return (
@@ -24,17 +22,11 @@ export const BearoContent: React.FC = () => {
         </p>
       </div>
 
-      {/* Features */}
-      <FeatureSection />
-
       {/* How It Works */}
       <HowItWorks />
 
       {/* Spend Section */}
       <SpendSection />
-
-      {/* Tier Roadmap */}
-      <TierRoadmap />
 
       {/* Footer */}
       <Footer />

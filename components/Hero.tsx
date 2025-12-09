@@ -282,23 +282,23 @@ export const Hero: React.FC = () => {
         <div id="waitlist-signup" className="relative z-30 mt-16 w-full max-w-xl">
           {!isSubmitted ? (
             <form onSubmit={handleCTA} className="relative">
-              {/* Rainbow Border Effect - keeping Jonathan's size/positioning */}
-              <div className="relative rounded-full rainbow-border p-[3px] overflow-hidden">
-                <div className="w-full h-full rounded-full bg-bearo-dark flex gap-2 p-1.5 md:h-16 overflow-hidden">
+              {/* Rainbow Border Effect - only on edges */}
+              <div className="relative rounded-full rainbow-border p-[3px]">
+                <div className="w-full h-full rounded-full bg-[#1a1a1c] border border-white/10 flex gap-2 p-1.5 md:h-16">
                   <input
                     type="email"
                     inputMode="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email"
-                    className="flex-1 px-5 py-3 md:py-4 rounded-full bg-white/5 border border-white/10 text-white placeholder:text-white/40 text-sm md:text-base font-display font-semibold tracking-wide focus:outline-none focus:border-bearo-honey/50 focus:bg-white/10 transition-all"
+                    className="flex-1 px-5 py-3 md:py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/60 text-sm md:text-base font-display font-semibold tracking-wide focus:outline-none focus:border-bearo-honey/50 focus:bg-white/15 transition-all"
                     required
                     disabled={isSubmitting}
                   />
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex shrink-0 items-center justify-center gap-1 md:gap-2 rounded-full bg-gradient-to-r from-bearo-honey to-bearo-amber px-3 py-2.5 md:px-6 md:py-4 text-[11px] md:text-base font-semibold uppercase text-black transition-transform duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] whitespace-nowrap disabled:opacity-50"
+                    className="flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-bearo-honey to-bearo-amber px-5 py-3 md:px-6 md:py-4 text-sm md:text-base font-semibold uppercase text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] whitespace-nowrap disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -307,9 +307,8 @@ export const Hero: React.FC = () => {
                       </svg>
                     ) : (
                       <>
-                        <span className="hidden md:inline">Join Waitlist</span>
-                        <span className="md:hidden">Join</span>
-                        <ArrowUpRight className="h-4 w-4 text-black" />
+                        Join Waitlist
+                        <ArrowUpRight className="h-4 w-4 text-white" />
                       </>
                     )}
                   </button>

@@ -1,8 +1,8 @@
 // Waitlist management for TestFlight beta invites
 // Separate thirdweb project - just collecting emails (no wallets)
 
-const THIRDWEB_CLIENT_ID = import.meta.env.VITE_THIRDWEB_CLIENT_ID || '';
-const THIRDWEB_SECRET_KEY = import.meta.env.VITE_THIRDWEB_SECRET_KEY || '';
+const THIRDWEB_CLIENT_ID = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || '';
+const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY || ''; // Server-side only
 
 interface WaitlistEntry {
   email: string;

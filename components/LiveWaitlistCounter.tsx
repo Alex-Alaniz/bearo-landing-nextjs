@@ -194,19 +194,19 @@ export const LiveWaitlistCounter: React.FC = () => {
           className="fixed bottom-6 right-6 z-50 group animate-fade-in"
         >
           {/* Rainbow animated border */}
-          <div className="relative rounded-full rainbow-border p-[3px] hover:scale-105 transition-transform duration-300">
-            <div className="w-full h-full rounded-full bg-black backdrop-blur-2xl flex items-center gap-3 px-5 py-3">
+          <div className="relative rounded-full rainbow-border p-[3px] hover:scale-105 transition-transform duration-300 shadow-[0_0_30px_rgba(249,115,22,0.4)]">
+            <div className="w-full h-full rounded-full bg-[#1a1a1c] border border-white/20 backdrop-blur-2xl flex items-center gap-3 px-5 py-3">
               <div className="w-2 h-2 rounded-full bg-bearo-green animate-pulse" />
               
               <div className="flex items-center gap-2">
                 <TierIcon tierNumber={tierInfo.tierNumber} size={24} />
                 <div className="text-left">
                   <div className={`text-2xl font-bold transition-all duration-300 ${isAnimating ? 'scale-110' : 'scale-100'}`}>
-                    <span className="bg-gradient-to-r from-bearo-honey to-bearo-amber bg-clip-text text-transparent">
+                    <span className="text-white">
                       {totalCount}
                     </span>
                   </div>
-                  <div className="text-[9px] text-white/50 uppercase tracking-wider">
+                  <div className="text-[9px] text-white uppercase tracking-wider">
                     {tierInfo.tier}
                   </div>
                 </div>
@@ -269,8 +269,8 @@ export const LiveWaitlistCounter: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div>
-                    <div className={`text-5xl font-bold text-white mb-1 transition-all duration-300 ${isAnimating ? 'scale-110' : 'scale-100'}`}>
-                      <span className="bg-gradient-to-r from-bearo-honey to-bearo-amber bg-clip-text text-transparent">
+                    <div className={`text-5xl font-bold mb-1 transition-all duration-300 ${isAnimating ? 'scale-110' : 'scale-100'}`}>
+                      <span className="text-white">
                         {totalCount.toLocaleString()}
                       </span>
                     </div>
@@ -316,7 +316,7 @@ export const LiveWaitlistCounter: React.FC = () => {
                       </defs>
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-bearo-honey text-xs font-bold">{progress.toFixed(0)}%</span>
+                      <span className="text-white text-xs font-bold">{progress.toFixed(0)}%</span>
                     </div>
                   </div>
                 )}

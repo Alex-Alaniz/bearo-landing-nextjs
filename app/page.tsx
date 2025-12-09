@@ -128,18 +128,19 @@ const CashAppInvest = () => {
   };
 
   return (
-    <div className="landing-page-wrapper">
+    <div className="landing-page-wrapper bg-[#0a0a0b]">
       {/* Jonathan's Animated Landing - Scoped to .cash-app-animation class */}
       <div ref={containerRef} className="cash-app-animation">
         <main>
           <header data-grid>
             <div data-logos>
-              <a href="/" className="font-sans font-black text-lg shrink-0">
-              Bearo
+              <a href="/" className="shrink-0">
+                <img src="/images/BearoApp.png" alt="Bearo" className="w-24 h-24" />
               </a>
             </div>
 
-            <EyeballIcon />
+            {/* Empty placeholder for grid alignment */}
+            <div></div>
 
             <div data-links>
               <a data-menu-link href="#" onClick={toggleMenu}>
@@ -147,6 +148,11 @@ const CashAppInvest = () => {
               </a>
             </div>
           </header>
+
+          {/* Floating Eye - positioned below header */}
+          <div className="absolute top-28 left-1/2 -translate-x-1/2 z-10">
+            <EyeballIcon />
+          </div>
 
           <section data-chapter="loader" style={{height: 'var(--vh)', zIndex: 5}}>
             <LogoIcon />
@@ -241,7 +247,7 @@ const CashAppInvest = () => {
       </div>
 
       {/* Bearo Content - Appears when user scrolls down */}
-      <div id="bearo-content">
+      <div id="bearo-content" className="bg-[#0a0a0b]">
         <BearoContent />
       </div>
 

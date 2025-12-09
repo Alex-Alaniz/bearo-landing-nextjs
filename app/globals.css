@@ -120,3 +120,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Rainbow shimmer animation for CTA buttons */
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+}
+
+/* Rainbow border utility class */
+.rainbow-border {
+  background: linear-gradient(90deg, #f97316, #a855f7, #3b82f6, #22c55e, #f97316);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}

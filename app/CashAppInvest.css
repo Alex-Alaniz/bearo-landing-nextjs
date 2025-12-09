@@ -1,13 +1,12 @@
-[data-chapter],
-[data-modal],
-html,
-main,
-section {
+/* Scoped styles for Jonathan's animated landing */
+.cash-app-animation [data-chapter],
+.cash-app-animation [data-modal],
+.cash-app-animation main,
+.cash-app-animation section {
   height: var(--vh);
 }
-[data-chapter],
-html,
-main {
+.cash-app-animation [data-chapter],
+.cash-app-animation main {
   overflow: hidden;
 }
 a,
@@ -877,4 +876,87 @@ footer [data-disclosure] a {
 [data-chapter="cta"] [data-word="cash"],
 [data-chapter="cta"] [data-word="app"] {
   color: #fff;
+}
+
+/* Landing page wrapper */
+.landing-page-wrapper {
+  min-height: 200vh;
+}
+
+.landing-page-wrapper .cash-app-animation {
+  position: relative;
+  height: 100vh;
+  z-index: 10;
+}
+
+/* Bearo content section */
+#bearo-content {
+  position: relative;
+  z-index: 5;
+}
+
+/* Rainbow animated border shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* Footer button rainbow borders - scoped to cash-app-animation */
+.cash-app-animation footer [data-apps] a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 162px;
+  height: 48px;
+  border-radius: 7px;
+  position: relative;
+  background: linear-gradient(90deg, #f97316, #a855f7, #3b82f6, #22c55e, #f97316);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+  padding: 2px;
+  overflow: hidden;
+  border: none !important;
+}
+
+.cash-app-animation footer [data-apps] a::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: #000;
+  border-radius: 5px;
+  z-index: 0;
+}
+
+.cash-app-animation footer [data-apps] a span,
+.cash-app-animation footer [data-apps] a svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* Inverted button state (when page is white) */
+.cash-app-animation footer [data-apps] a.inverted {
+  background: #000;
+  border: 2px solid #000 !important;
+  animation: none;
+}
+
+.cash-app-animation footer [data-apps] a.inverted::before {
+  background: #fff;
+}
+
+.cash-app-animation footer [data-apps] a.inverted span {
+  color: #000 !important;
+}
+
+.cash-app-animation footer [data-apps] a.inverted svg {
+  color: #f97316 !important;
+}
+
+/* Footer positioning - absolute within animation container */
+.cash-app-animation footer {
+  position: absolute !important;
 }

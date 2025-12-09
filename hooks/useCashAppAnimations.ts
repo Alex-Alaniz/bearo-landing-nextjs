@@ -203,9 +203,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
               if (myFirstLink) myFirstLink.style.color = 'black';
               if (appLinks) {
                 appLinks.querySelectorAll('a').forEach((link: any) => {
-                  link.style.color = 'black';
-                  link.style.borderColor = 'black';
-                  link.querySelector('svg')!.style.color = BRAND_COLOR;
+                  link.classList.add('inverted');
                 });
               }
               if (socialLinks) socialLinks.querySelectorAll('a').forEach((link: any) => link.style.color = 'black');
@@ -284,9 +282,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
               if (myFirstLink) myFirstLink.style.color = 'white';
               if (appLinks) {
                 appLinks.querySelectorAll('a').forEach((link: any) => {
-                    link.style.color = 'white';
-                    link.style.borderColor = 'white';
-                    link.querySelector('svg')!.style.color = 'white';
+                    link.classList.remove('inverted');
                 });
               }
               if (socialLinks) socialLinks.querySelectorAll('a').forEach((link: any) => link.style.color = 'white');

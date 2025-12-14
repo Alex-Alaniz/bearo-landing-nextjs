@@ -4,7 +4,7 @@ import { PhoneFrame } from './PhoneFrame';
 import { TierSelector } from './TierSelector';
 import { EmailVerification } from './EmailVerification';
 import { isOnWaitlist } from '../lib/waitlist';
-import { initiateWaitlistAuth, verifyAndClaimTier, checkExistingUser, ExistingUserInfo } from '../lib/api';
+import { initiateWaitlistAuth, verifyAndClaimTier, checkExistingUser, ExistingUserInfo, linkReferralRetroactively } from '../lib/api';
 
 // Animation data will be loaded dynamically
 type AnimationData = Record<string, unknown>;
@@ -52,6 +52,11 @@ export const Hero: React.FC = () => {
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [welcomeAnimation, setWelcomeAnimation] = useState<AnimationData | null>(null);
   const [moneyAnimation, setMoneyAnimation] = useState<AnimationData | null>(null);
+  // Retroactive referral linking state
+  const [showLinkReferral, setShowLinkReferral] = useState(false);
+  const [linkReferralCode, setLinkReferralCode] = useState('');
+  const [isLinkingReferral, setIsLinkingReferral] = useState(false);
+  const [linkedReferrer, setLinkedReferrer] = useState<string | null>(null);
 
   useEffect(() => {
     // Load animations from iOS app
@@ -478,6 +483,84 @@ export const Hero: React.FC = () => {
                   <p className="text-white/40 text-xs mt-4 text-center">
                     Share your code to earn bonus $BEARCO tokens!
                   </p>
+                </div>
+              )}
+
+              {/* Retroactive Referral Linking */}
+              {referral && !linkedReferrer && (
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                  {!showLinkReferral ? (
+                    <button
+                      onClick={() => setShowLinkReferral(true)}
+                      className="w-full text-center text-white/60 text-sm hover:text-white/80 transition-colors"
+                    >
+                      Have a referral code? <span className="underline">Link it here</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-white/60 text-sm text-center">Enter the referral code from who invited you:</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={linkReferralCode}
+                          onChange={(e) => setLinkReferralCode(e.target.value.toUpperCase())}
+                          placeholder="BEAR****"
+                          maxLength={8}
+                          className="flex-1 px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/40 text-sm font-mono uppercase focus:outline-none focus:border-bearo-honey/50"
+                        />
+                        <button
+                          onClick={async () => {
+                            if (!linkReferralCode || linkReferralCode.length < 8) {
+                              alert('Please enter a valid 8-character referral code (e.g., BEAR1234)');
+                              return;
+                            }
+                            setIsLinkingReferral(true);
+                            try {
+                              const result = await linkReferralRetroactively(email, linkReferralCode);
+                              if (result.success) {
+                                setLinkedReferrer(result.referrerCode || linkReferralCode);
+                                setShowLinkReferral(false);
+                                alert(result.message);
+                              } else {
+                                alert(result.message);
+                              }
+                            } catch (error: any) {
+                              alert(error.message || 'Failed to link referral code');
+                            } finally {
+                              setIsLinkingReferral(false);
+                            }
+                          }}
+                          disabled={isLinkingReferral || linkReferralCode.length < 8}
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-bearo-honey to-bearo-amber text-white font-semibold text-sm disabled:opacity-50 hover:scale-[1.02] active:scale-95 transition-transform"
+                        >
+                          {isLinkingReferral ? '...' : 'Link'}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowLinkReferral(false);
+                          setLinkReferralCode('');
+                        }}
+                        className="w-full text-white/40 text-xs hover:text-white/60 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Linked Referrer Confirmation */}
+              {linkedReferrer && (
+                <div className="rounded-2xl bg-bearo-green/10 border border-bearo-green/20 p-4">
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5 text-bearo-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span className="text-bearo-green text-sm font-medium">
+                      Linked to referrer: <span className="font-mono">{linkedReferrer}</span>
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

@@ -310,7 +310,7 @@ export const WalletClaimSection: React.FC = () => {
             Link Your <span className="text-gradient">Solana Wallet</span>
           </h2>
           <p className="mt-4 text-white/60 max-w-md mx-auto">
-            Already on the waitlist? Link your wallet to receive your $BEARO airdrop at launch.
+            Already on the waitlist? Link your wallet to receive your $BEARCO airdrop at launch.
           </p>
         </div>
 
@@ -570,7 +570,7 @@ export const WalletClaimSection: React.FC = () => {
                   </div>
                   <div className="flex justify-between pt-2 border-t border-white/10">
                     <span className="text-white/60 text-sm font-medium">Projected Airdrop</span>
-                    <span className="text-purple-400 font-bold">{projectedAirdrop.toLocaleString()} $BEARO</span>
+                    <span className="text-purple-400 font-bold">{projectedAirdrop.toLocaleString()} $BEARCO</span>
                   </div>
                 </div>
               </div>
@@ -588,7 +588,7 @@ export const WalletClaimSection: React.FC = () => {
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500 font-mono text-sm"
                 />
                 <p className="mt-2 text-white/40 text-xs">
-                  This is where your $BEARO tokens will be sent. Make sure it's correct!
+                  This is where your $BEARCO tokens will be sent. Make sure it's correct!
                 </p>
               </div>
 
@@ -660,13 +660,13 @@ export const WalletClaimSection: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center pt-3 border-t border-white/10">
                   <span className="text-white/60 font-medium">Projected Airdrop</span>
-                  <span className="text-purple-400 font-bold text-lg">{projectedAirdrop.toLocaleString()} $BEARO</span>
+                  <span className="text-purple-400 font-bold text-lg">{projectedAirdrop.toLocaleString()} $BEARCO</span>
                 </div>
               </div>
 
               {/* Share referral code */}
               <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-500/20">
-                <p className="text-white/60 text-sm mb-2">Share your code to earn more $BEARO!</p>
+                <p className="text-white/60 text-sm mb-2">Share your code to earn more $BEARCO!</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 px-3 py-2 bg-white/5 rounded-lg font-mono text-white text-center">
                     {allocation.referral_code}

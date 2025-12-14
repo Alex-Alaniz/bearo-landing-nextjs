@@ -434,11 +434,52 @@ export const Hero: React.FC = () => {
               </div>
             </form>
           ) : (
-            <div className="flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-bearo-green/10 border border-bearo-green/20">
-              <svg className="w-5 h-5 text-bearo-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-              </svg>
-              <span className="text-bearo-green font-semibold">You're on the list! Check your email to verify.</span>
+            <div className="space-y-4">
+              {/* Success Message */}
+              <div className="flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-bearo-green/10 border border-bearo-green/20">
+                <svg className="w-5 h-5 text-bearo-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span className="text-bearo-green font-semibold">
+                  {existingUser?.exists ? "Welcome back! You're verified." : "You're on the list!"}
+                </span>
+              </div>
+
+              {/* Referral Code Display */}
+              {referral && (
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
+                  <p className="text-white/60 text-sm font-medium mb-3 text-center">Your Referral Code</p>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div className="text-center sm:text-left">
+                      <p className="font-mono text-white text-2xl font-bold">{referral.code}</p>
+                      <p className="text-white/40 text-xs mt-1 break-all">{referral.link}</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(referral.link);
+                          alert('Referral link copied!');
+                        } catch {
+                          // Fallback for older browsers
+                          const textArea = document.createElement('textarea');
+                          textArea.value = referral.link;
+                          document.body.appendChild(textArea);
+                          textArea.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(textArea);
+                          alert('Referral link copied!');
+                        }
+                      }}
+                      className="shrink-0 px-6 py-3 rounded-xl bg-gradient-to-r from-bearo-honey to-bearo-amber text-white font-semibold hover:scale-[1.02] active:scale-95 transition-transform"
+                    >
+                      Copy Link
+                    </button>
+                  </div>
+                  <p className="text-white/40 text-xs mt-4 text-center">
+                    Share your code to earn bonus $BEARCO tokens!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

@@ -68,13 +68,16 @@ export const Hero: React.FC = () => {
 
   const handleCTA = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[handleCTA] Starting with email:', email);
     if (!email || isSubmitting || isCheckingEmail) return;
 
     setIsCheckingEmail(true);
 
     try {
       // Check database for existing user
+      console.log('[handleCTA] Calling checkExistingUser...');
       const existingUserInfo = await checkExistingUser(email);
+      console.log('[handleCTA] checkExistingUser returned:', existingUserInfo);
 
       if (existingUserInfo.exists && existingUserInfo.tierNumber && existingUserInfo.tierName) {
         // User already has a tier - skip tier selection
@@ -394,7 +397,7 @@ export const Hero: React.FC = () => {
           </div>
         </div>
 
-        <div id="waitlist-signup" className="relative z-30 mt-16 w-full max-w-xl">
+        <div id="waitlist-signup" className="relative z-30 mt-16 w-full max-w-xl scroll-mt-32">
           {!isSubmitted ? (
             <form onSubmit={handleCTA} className="relative">
               {/* Rainbow Border Effect - only on edges */}

@@ -468,10 +468,15 @@ export interface ExistingUserInfo {
 }
 
 export async function checkExistingUser(email: string): Promise<ExistingUserInfo> {
+  console.log('[checkExistingUser] Checking email:', email);
+
   try {
     if (!supabase) {
+      console.warn('[checkExistingUser] Supabase client not initialized');
       return { exists: false };
     }
+
+    console.log('[checkExistingUser] Querying waitlist_sync...');
 
     // Check waitlist_sync first
     const { data: waitlistData, error: waitlistError } = await supabase
@@ -479,6 +484,8 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
       .select('email, tier_name, tier_number, referral_code')
       .eq('email', email.toLowerCase())
       .maybeSingle();
+
+    console.log('[checkExistingUser] Query result:', { waitlistData, waitlistError });
 
     if (waitlistError) {
       console.error('[checkExistingUser] Waitlist query error:', waitlistError);
@@ -498,6 +505,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
       };
     }
 
+    console.log('[checkExistingUser] User not found in database');
     return { exists: false };
   } catch (error) {
     console.error('[checkExistingUser] Error:', error);

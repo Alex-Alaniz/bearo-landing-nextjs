@@ -12,7 +12,7 @@ export const Leaderboard: React.FC = () => {
       setLoading(true);
       try {
         const [leaderboard, airdropStats] = await Promise.all([
-          getReferralLeaderboard(10),
+          getReferralLeaderboard(50), // Show more entries, not just top 10
           getAirdropStats(),
         ]);
         setEntries(leaderboard);
@@ -158,15 +158,27 @@ export const Leaderboard: React.FC = () => {
             Join the waitlist to get your referral code and start earning $BEARCO
           </p>
           <div className="inline-flex rounded-full rainbow-border p-[2px] hover:scale-[1.02] transition-transform duration-200">
-            <a
-              href="#waitlist-signup"
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                const target = document.getElementById('waitlist-signup');
+                if (target) {
+                  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  // Focus the email input after scrolling
+                  setTimeout(() => {
+                    const input = target.querySelector('input[type="email"]');
+                    if (input) (input as HTMLInputElement).focus();
+                  }, 500);
+                }
+              }}
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#0a0a0b] border border-white/10 rounded-full font-medium text-white hover:bg-white/5 transition-colors"
             >
               Get Your Code
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
-            </a>
+            </button>
           </div>
         </div>
       </div>

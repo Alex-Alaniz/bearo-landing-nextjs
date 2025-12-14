@@ -61,7 +61,7 @@ export const LiveWaitlistCounter: React.FC = () => {
   const getTierInfo = (count: number) => {
     if (count === 0) {
       return {
-        tier: 'First Mover',
+        tier: '$Bearco',
         tierNumber: 0,
         message: 'Be the very first OG. Legendary status awaits.',
         color: 'from-amber-500 to-yellow-500',
@@ -206,7 +206,7 @@ export const LiveWaitlistCounter: React.FC = () => {
                       {totalCount}
                     </span>
                   </div>
-                  <div className="text-[9px] text-white uppercase tracking-wider">
+                  <div className={`text-[9px] text-white tracking-wider ${tierInfo.tierNumber === 0 ? 'normal-case' : 'uppercase'}`}>
                     {tierInfo.tier}
                   </div>
                 </div>

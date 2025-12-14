@@ -81,7 +81,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
             { to: 0.01, duration: 200 }, { to: 1, duration: 200 }, 
             { to: 1, duration: 800 }
           ],
-          ease: 'cubicBezier(0.25, 0.1, 0.25, 1)'
+          ease: cubicBezier(0.25, 0.1, 0.25, 1)
         });
 
       // Eyeball Movement
@@ -110,7 +110,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
             { to: '33%', duration: 300 }, { to: '33%', duration: 1000 }, { to: '13%', duration: 300 }, 
             { to: '13%', duration: 300 }, { to: '0%', duration: 300 }
           ],
-          ease: 'cubicBezier(0.25, 0.1, 0.25, 1)'
+          ease: cubicBezier(0.25, 0.1, 0.25, 1)
         });
 
       // Iris Scaling
@@ -121,7 +121,7 @@ export const useCashAppAnimations = (containerRef: React.RefObject<HTMLElement |
             { to: '1', duration: 600 }, { to: '1', duration: 2000 }, { to: '0.8', duration: 600 }, 
             { to: '0.8', duration: 1000 }, { to: '1', duration: 600 }
           ],
-          ease: 'cubicBezier(0.41, 0.15, 0, 1)'
+          ease: cubicBezier(0.41, 0.15, 0, 1)
         });
     };
 

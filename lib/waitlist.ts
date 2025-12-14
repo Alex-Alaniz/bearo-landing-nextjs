@@ -16,7 +16,7 @@ interface WaitlistEntry {
 
 // Get tier info based on position
 export function getTierForPosition(position: number): { tier: string; tierNumber: number } {
-  if (position === 0) return { tier: 'First Mover', tierNumber: 0 };
+  if (position === 0) return { tier: '$Bearco', tierNumber: 0 };
   if (position <= 10) return { tier: 'OG Founder', tierNumber: 1 };
   if (position <= 50) return { tier: 'Alpha Insider', tierNumber: 2 };
   if (position <= 100) return { tier: 'Beta Crew', tierNumber: 3 };

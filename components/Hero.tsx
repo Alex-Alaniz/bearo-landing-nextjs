@@ -47,6 +47,7 @@ export const Hero: React.FC = () => {
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [claimedTier, setClaimedTier] = useState<{ number: number; name: string; emoji: string } | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [referral, setReferral] = useState<{ code: string; link: string } | null>(null);
   const [welcomeAnimation, setWelcomeAnimation] = useState<AnimationData | null>(null);
   const [moneyAnimation, setMoneyAnimation] = useState<AnimationData | null>(null);
 
@@ -118,6 +119,20 @@ export const Hero: React.FC = () => {
       
       console.log(`✅ ${email} verified and claimed ${claimedTier.name}!`, result);
       setIsSubmitted(true);
+      if (result.referralCode && result.referralLink) {
+        setReferral({ code: result.referralCode, link: result.referralLink });
+      } else {
+        // Fallback: read from localStorage if available
+        try {
+          const stored = localStorage.getItem('bearo_referral');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed?.referralCode && parsed?.referralLink) {
+              setReferral({ code: parsed.referralCode, link: parsed.referralLink });
+            }
+          }
+        } catch {}
+      }
       
     } catch (error: any) {
       console.error('Error verifying:', error);
@@ -242,6 +257,34 @@ export const Hero: React.FC = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Referral Code (after verified) */}
+                {isSubmitted && referral && (
+                  <div className="px-6 mb-4">
+                    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                      <p className="text-white/60 text-xs font-medium mb-2">Your referral code</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-mono text-white text-base font-bold truncate">{referral.code}</p>
+                          <p className="text-white/40 text-[11px] truncate">{referral.link}</p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(referral.link);
+                              alert('Copied referral link!');
+                            } catch {
+                              alert('Copy failed — please copy manually.');
+                            }
+                          }}
+                          className="shrink-0 px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold active:scale-[0.98] transition-transform"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Sign In Link */}
                 <div className="px-6 mb-8">

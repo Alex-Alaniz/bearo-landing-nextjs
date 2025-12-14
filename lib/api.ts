@@ -457,6 +457,54 @@ export async function getWaitlistCountAPI(): Promise<number> {
   }
 }
 
+// Check if user already exists and return their tier info
+export interface ExistingUserInfo {
+  exists: boolean;
+  email?: string;
+  tierNumber?: number;
+  tierName?: string;
+  referralCode?: string;
+  referralLink?: string;
+}
+
+export async function checkExistingUser(email: string): Promise<ExistingUserInfo> {
+  try {
+    if (!supabase) {
+      return { exists: false };
+    }
+
+    // Check waitlist_sync first
+    const { data: waitlistData, error: waitlistError } = await supabase
+      .from('waitlist_sync')
+      .select('email, tier_name, tier_number, referral_code')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (waitlistError) {
+      console.error('[checkExistingUser] Waitlist query error:', waitlistError);
+      return { exists: false };
+    }
+
+    if (waitlistData) {
+      const referralLink = `https://bearo.cash/?ref=${encodeURIComponent(waitlistData.referral_code)}`;
+      console.log(`✅ Found existing user: ${email} - ${waitlistData.tier_name}`);
+      return {
+        exists: true,
+        email: waitlistData.email,
+        tierNumber: waitlistData.tier_number,
+        tierName: waitlistData.tier_name,
+        referralCode: waitlistData.referral_code,
+        referralLink,
+      };
+    }
+
+    return { exists: false };
+  } catch (error) {
+    console.error('[checkExistingUser] Error:', error);
+    return { exists: false };
+  }
+}
+
 // Get tier availability - from Supabase waitlist_sync table
 export async function getTierAvailabilityAPI(): Promise<Record<number, TierAvailability>> {
   try {

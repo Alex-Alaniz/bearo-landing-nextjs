@@ -7,6 +7,7 @@ interface EmailVerificationProps {
   tierEmoji: string;
   onVerified: (otp: string) => void;
   onBack: () => void;
+  isExistingUser?: boolean;
 }
 
 export const EmailVerification: React.FC<EmailVerificationProps> = ({
@@ -14,7 +15,8 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({
   tierName,
   tierEmoji,
   onVerified,
-  onBack
+  onBack,
+  isExistingUser = false
 }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -192,7 +194,9 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({
 
         {/* Tier Confirmation */}
         <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-6">
-          <p className="text-white/60 text-xs mb-2">You're claiming:</p>
+          <p className="text-white/60 text-xs mb-2">
+            {isExistingUser ? 'Welcome back! Your tier:' : "You're claiming:"}
+          </p>
           <div className="flex items-center gap-2">
             <span className="text-2xl">{tierEmoji}</span>
             <span className="text-white font-bold">{tierName}</span>
@@ -204,7 +208,7 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({
           onClick={onBack}
           className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white font-medium transition-all"
         >
-          ← Back to tier selection
+          {isExistingUser ? '← Cancel' : '← Back to tier selection'}
         </button>
       </div>
 

@@ -4,7 +4,7 @@ import { PhoneFrame } from './PhoneFrame';
 import { TierSelector } from './TierSelector';
 import { EmailVerification } from './EmailVerification';
 import { isOnWaitlist } from '../lib/waitlist';
-import { initiateWaitlistAuth, verifyAndClaimTier } from '../lib/api';
+import { initiateWaitlistAuth, verifyAndClaimTier, checkExistingUser, ExistingUserInfo } from '../lib/api';
 
 // Animation data will be loaded dynamically
 type AnimationData = Record<string, unknown>;
@@ -48,6 +48,8 @@ export const Hero: React.FC = () => {
   const [claimedTier, setClaimedTier] = useState<{ number: number; name: string; emoji: string } | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [referral, setReferral] = useState<{ code: string; link: string } | null>(null);
+  const [existingUser, setExistingUser] = useState<ExistingUserInfo | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [welcomeAnimation, setWelcomeAnimation] = useState<AnimationData | null>(null);
   const [moneyAnimation, setMoneyAnimation] = useState<AnimationData | null>(null);
 
@@ -66,16 +68,51 @@ export const Hero: React.FC = () => {
 
   const handleCTA = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || isSubmitting) return;
+    if (!email || isSubmitting || isCheckingEmail) return;
 
-    // Check if already on waitlist
-    if (isOnWaitlist(email)) {
-      alert('This email is already on the waitlist!');
-      return;
+    setIsCheckingEmail(true);
+
+    try {
+      // Check database for existing user
+      const existingUserInfo = await checkExistingUser(email);
+
+      if (existingUserInfo.exists && existingUserInfo.tierNumber && existingUserInfo.tierName) {
+        // User already has a tier - skip tier selection
+        console.log(`🔄 Existing user found: ${email} - ${existingUserInfo.tierName}`);
+        setExistingUser(existingUserInfo);
+
+        // Set their existing tier
+        const tierLabel = existingUserInfo.tierNumber === 1 ? 'OG' : existingUserInfo.tierNumber === 2 ? 'AI' : existingUserInfo.tierNumber === 3 ? 'BC' : existingUserInfo.tierNumber === 4 ? 'EA' : existingUserInfo.tierNumber === 5 ? 'PW' : 'CM';
+        setClaimedTier({
+          number: existingUserInfo.tierNumber,
+          name: existingUserInfo.tierName,
+          emoji: tierLabel
+        });
+
+        // Send verification email directly (skip tier selection)
+        await initiateWaitlistAuth(email);
+        console.log('✅ Verification email sent to existing user:', email);
+
+        // Show OTP verification modal
+        setShowEmailVerification(true);
+        return;
+      }
+
+      // Also check localStorage fallback
+      if (isOnWaitlist(email)) {
+        alert('This email is already on the waitlist!');
+        return;
+      }
+
+      // New user - show tier selector modal
+      setShowTierSelector(true);
+    } catch (error) {
+      console.error('Error checking existing user:', error);
+      // On error, proceed with normal flow
+      setShowTierSelector(true);
+    } finally {
+      setIsCheckingEmail(false);
     }
-
-    // Show tier selector modal
-    setShowTierSelector(true);
   };
 
   const handleTierClaimed = async (tierNumber: number, tierName: string) => {
@@ -109,14 +146,22 @@ export const Hero: React.FC = () => {
     setShowEmailVerification(false);
 
     try {
-      // Verify with backend API (thirdweb + Supabase)
+      // For existing users, use their stored referral info
+      if (existingUser?.exists && existingUser.referralCode && existingUser.referralLink) {
+        console.log(`✅ Welcome back ${email}! Tier: ${existingUser.tierName}`);
+        setIsSubmitted(true);
+        setReferral({ code: existingUser.referralCode, link: existingUser.referralLink });
+        return;
+      }
+
+      // New user - verify with backend API (thirdweb + Supabase)
       const result = await verifyAndClaimTier(
         email,
         otp,
         claimedTier.number,
         claimedTier.name
       );
-      
+
       console.log(`✅ ${email} verified and claimed ${claimedTier.name}!`, result);
       setIsSubmitted(true);
       if (result.referralCode && result.referralLink) {
@@ -133,7 +178,7 @@ export const Hero: React.FC = () => {
           }
         } catch {}
       }
-      
+
     } catch (error: any) {
       console.error('Error verifying:', error);
       alert(error.message || 'Something went wrong. Please try again!');
@@ -340,10 +385,10 @@ export const Hero: React.FC = () => {
                   />
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isCheckingEmail}
                     className="flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-bearo-honey to-bearo-amber px-5 py-3 md:px-6 md:py-4 text-sm md:text-base font-semibold uppercase text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] whitespace-nowrap disabled:opacity-50"
                   >
-                    {isSubmitting ? (
+                    {isSubmitting || isCheckingEmail ? (
                       <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
@@ -385,8 +430,14 @@ export const Hero: React.FC = () => {
               onVerified={handleEmailVerified}
               onBack={() => {
                 setShowEmailVerification(false);
-                setShowTierSelector(true);
+                // Only show tier selector if not an existing user
+                if (!existingUser?.exists) {
+                  setShowTierSelector(true);
+                }
+                // Reset existing user state
+                setExistingUser(null);
               }}
+              isExistingUser={existingUser?.exists}
             />
           )}
         </div>

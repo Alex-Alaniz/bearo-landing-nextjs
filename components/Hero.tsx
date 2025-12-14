@@ -285,11 +285,38 @@ export const Hero: React.FC = () => {
                 <div className="px-6 mb-3">
                   <div className="relative rounded-2xl rainbow-border p-[2px]">
                     <button
-                      onClick={() => {
-                        const email = prompt('Enter your email to get Bearified:');
-                        if (email && email.trim()) {
-                          setEmail(email.trim());
-                          if (!isOnWaitlist(email.trim())) {
+                      onClick={async () => {
+                        const inputEmail = prompt('Enter your email to get Bearified:');
+                        if (inputEmail && inputEmail.trim()) {
+                          const trimmedEmail = inputEmail.trim();
+                          setEmail(trimmedEmail);
+
+                          // Check database for existing user
+                          try {
+                            const existingUserInfo = await checkExistingUser(trimmedEmail);
+
+                            if (existingUserInfo.exists && existingUserInfo.tierNumber && existingUserInfo.tierName) {
+                              // User already has a tier - skip tier selection
+                              console.log(`🔄 Existing user found: ${trimmedEmail} - ${existingUserInfo.tierName}`);
+                              setExistingUser(existingUserInfo);
+
+                              const tierLabel = existingUserInfo.tierNumber === 1 ? 'OG' : existingUserInfo.tierNumber === 2 ? 'AI' : existingUserInfo.tierNumber === 3 ? 'BC' : existingUserInfo.tierNumber === 4 ? 'EA' : existingUserInfo.tierNumber === 5 ? 'PW' : 'CM';
+                              setClaimedTier({
+                                number: existingUserInfo.tierNumber,
+                                name: existingUserInfo.tierName,
+                                emoji: tierLabel
+                              });
+
+                              await initiateWaitlistAuth(trimmedEmail);
+                              setShowEmailVerification(true);
+                              return;
+                            }
+                          } catch (error) {
+                            console.error('Error checking existing user:', error);
+                          }
+
+                          // New user - show tier selector
+                          if (!isOnWaitlist(trimmedEmail)) {
                             setShowTierSelector(true);
                           } else {
                             alert('This email is already on the waitlist!');
@@ -437,7 +464,7 @@ export const Hero: React.FC = () => {
                 // Reset existing user state
                 setExistingUser(null);
               }}
-              isExistingUser={existingUser?.exists}
+              isExistingUser={!!existingUser?.exists}
             />
           )}
         </div>

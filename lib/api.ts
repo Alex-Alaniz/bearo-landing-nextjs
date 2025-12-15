@@ -820,14 +820,33 @@ export async function saveWalletAddress(
   const trimmedWallet = walletAddress.trim();
 
   try {
+    // SECURITY: First verify that user has completed thirdweb authentication
+    const { data: authCheck } = await supabase
+      .from('waitlist')
+      .select('thirdweb_user_id')
+      .eq('email', normalizedEmail)
+      .single();
+
+    if (!authCheck) {
+      console.error('[saveWalletAddress] User not found:', normalizedEmail);
+      return { success: false, message: 'User not found. Please complete signup first.' };
+    }
+
+    if (!authCheck.thirdweb_user_id) {
+      console.error('[saveWalletAddress] BLOCKED: Attempt to set wallet without auth for:', normalizedEmail);
+      return { success: false, message: 'Authentication required. Please verify your email first.' };
+    }
+
     // Update base waitlist table (not the view) with wallet address
+    // Double-check thirdweb_user_id matches to prevent spoofing
     const { error: updateError } = await supabase
       .from('waitlist')
       .update({
         solana_wallet_address: trimmedWallet,
         wallet_set_at: new Date().toISOString(),
       })
-      .eq('email', normalizedEmail);
+      .eq('email', normalizedEmail)
+      .eq('thirdweb_user_id', authCheck.thirdweb_user_id);
 
     if (updateError) {
       console.error('[saveWalletAddress] Update error:', updateError);

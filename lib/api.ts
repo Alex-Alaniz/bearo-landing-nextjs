@@ -270,194 +270,72 @@ export async function verifyAndClaimTier(
     const authResult = await authResponse.json();
     console.log('✅ Email verified with thirdweb:', authResult);
 
-    // 2. Save to database and get referral code
-    if (supabase) {
-      try {
-        // Check if email already exists
-        const { data: existing } = await supabase
-          .from('waitlist_sync')
-          .select('email, referral_code')
-          .eq('email', email.toLowerCase())
-          .maybeSingle();
-
-        if (existing) {
-          // User already exists - return their existing code
-          const referralLink = `https://bearo.cash/?ref=${encodeURIComponent(existing.referral_code)}`;
-          storeLocalFallback(authResult, email, tierNumber, tierName, existing.referral_code, referralLink);
-
-          return {
-            success: true,
-            tier: tierName,
-            tierNumber,
-            position: 0,
-            spotsLeft: 0,
-            userId: authResult.userId,
-            referralCode: existing.referral_code,
-            referralLink,
-          };
-        }
-
-        // Get current count for position
-        const { count: currentCount } = await supabase
-          .from('waitlist_sync')
-          .select('*', { count: 'exact', head: true });
-
-        const signupPosition = (currentCount || 0) + 1;
-
-        // Check tier availability
-        const { count: tierCount } = await supabase
-          .from('waitlist_sync')
-          .select('*', { count: 'exact', head: true })
-          .eq('tier_number', tierNumber);
-
-        const maxSpots = TIER_MAX_SPOTS[tierNumber] || 0;
-        const claimed = tierCount || 0;
-        const spotsLeft = maxSpots - claimed;
-
-        if (spotsLeft <= 0) {
-          throw new Error(`${tierName} tier is full. Please select another tier.`);
-        }
-
-        // Generate referral code (database trigger will also generate one, but we need it for the response)
-        const referralCode = generateReferralCode();
-        const referralLink = `https://bearo.cash/?ref=${encodeURIComponent(referralCode)}`;
-
-        // Validate referrer code if provided (prevent gaming)
-        let validatedReferrer: string | undefined = undefined;
-        if (referredBy) {
-          const referrerCode = referredBy.toUpperCase().trim();
-          // Prevent self-referral (comparing with the code we're about to create)
-          if (referrerCode === referralCode) {
-            console.warn('⚠️ Self-referral attempt blocked:', email);
-          } else if (await validateReferrerCode(referrerCode)) {
-            validatedReferrer = referrerCode;
-            console.log('✅ Valid referrer code:', referrerCode);
-          } else {
-            console.warn('⚠️ Invalid referrer code ignored:', referrerCode);
-          }
-        }
-
-        // Insert to waitlist_sync
-        const waitlistEntry: WaitlistSyncEntry = {
+    // 2. Save to database via secure API endpoint (uses service role)
+    try {
+      const signupResponse = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           email: email.toLowerCase(),
-          tier_name: tierName,
-          tier_number: tierNumber,
-          signup_position: signupPosition,
-          referral_code: referralCode,
-          referred_by: validatedReferrer, // Track who referred them
-        };
-
-        const { error: insertError } = await supabase
-          .from('waitlist_sync')
-          .insert([waitlistEntry]);
-
-        if (insertError) {
-          console.error('Database insert error:', insertError);
-          if (insertError.code === '23505') { // Unique constraint violation
-            throw new Error('Email already registered');
-          }
-          throw new Error(`Database error: ${insertError.message}`);
-        }
-
-        console.log(`🎉 ${email} claimed ${tierName} tier at position #${signupPosition} with code ${referralCode}!`);
-
-        // Also insert to airdrop_allocations for leaderboard
-        // NOTE: The security_hardening.sql trigger will auto-sync this, but we do it here for immediate response
-        const baseAmount = TIER_BASE_AMOUNTS[tierNumber] || 100;
-        try {
-          await supabase
-            .from('airdrop_allocations')
-            .insert([{
-              email: email.toLowerCase(),
-              referral_code: referralCode,
-              tier_name: tierName,
-              tier_number: tierNumber,
-              base_amount: baseAmount,
-              referral_amount: 0,
-              action_amount: 0,
-              bonus_multiplier: 1.5, // Week 1 early bird bonus
-              referral_count: 0,
-              referred_by_code: validatedReferrer, // Track referrer for rewards
-            }]);
-        } catch (airdropError) {
-          console.warn('[Airdrop] Could not insert airdrop_allocations (non-fatal):', airdropError);
-        }
-
-        // If user signed up with a referral code, trigger airdrop to referrer
-        if (validatedReferrer) {
-          try {
-            // Look up referrer's email from their code
-            const { data: referrerData } = await supabase
-              .from('airdrop_allocations')
-              .select('email')
-              .eq('referral_code', validatedReferrer)
-              .single();
-
-            if (referrerData?.email) {
-              // Increment referrer's count
-              const { data: currentData } = await supabase
-                .from('airdrop_allocations')
-                .select('referral_count')
-                .eq('referral_code', validatedReferrer)
-                .single();
-
-              if (currentData) {
-                await supabase
-                  .from('airdrop_allocations')
-                  .update({ referral_count: (currentData.referral_count || 0) + 1 })
-                  .eq('referral_code', validatedReferrer);
-              }
-
-              // Trigger airdrop to referrer
-              const airdropResult = await triggerReferralAirdrop(
-                referrerData.email,
-                email.toLowerCase(),
-                'signup'
-              );
-              if (airdropResult.success) {
-                console.log(`🪂 Signup airdrop sent to referrer ${referrerData.email}`);
-              }
-            }
-          } catch (referrerError) {
-            console.warn('[Signup] Referrer airdrop error (non-fatal):', referrerError);
-          }
-        }
-
-        storeLocalFallback(authResult, email, tierNumber, tierName, referralCode, referralLink);
-
-        return {
-          success: true,
-          tier: tierName,
           tierNumber,
-          position: signupPosition,
-          spotsLeft: spotsLeft - 1,
-          userId: authResult.userId,
-          referralCode,
-          referralLink,
-        };
-      } catch (dbError: any) {
-        // SECURITY: Do NOT generate codes without database persistence
-        // This prevents gaming where users get codes that aren't tracked
-        console.error('❌ Database error during signup:', dbError);
+          tierName,
+          referredBy,
+          thirdwebUserId: authResult.userId,
+        }),
+      });
 
-        // If it's a known error, provide helpful message
-        if (dbError.message?.includes('full')) {
-          throw new Error(`${tierName} tier is full. Please select another tier.`);
-        }
-        if (dbError.message?.includes('already') || dbError.code === '23505') {
-          throw new Error('This email is already registered. Please use your existing code.');
-        }
-        if (dbError.message?.includes('referrer')) {
-          throw new Error('Invalid referral code. Please check and try again.');
-        }
+      const signupResult = await signupResponse.json();
 
-        // Generic database error - user must retry
-        throw new Error('Unable to complete registration. Please try again in a moment.');
+      if (!signupResponse.ok) {
+        throw new Error(signupResult.error || 'Signup failed');
       }
-    } else {
-      // SECURITY: Require database connection - no localStorage fallback
-      console.error('❌ Supabase not configured');
-      throw new Error('Service temporarily unavailable. Please try again later.');
+
+      const referralCode = signupResult.referralCode;
+      const referralLink = signupResult.referralLink;
+
+      // Store local fallback
+      storeLocalFallback(authResult, email, tierNumber, tierName, referralCode, referralLink);
+
+      // If user signed up with a referral code, trigger airdrop to referrer
+      if (referredBy && supabase) {
+        try {
+          const referrerCode = referredBy.toUpperCase().trim();
+          // Look up referrer's email from their code
+          const { data: referrerData } = await supabase
+            .from('airdrop_allocations')
+            .select('email')
+            .eq('referral_code', referrerCode)
+            .single();
+
+          if (referrerData?.email) {
+            // Trigger airdrop to referrer
+            const airdropResult = await triggerReferralAirdrop(
+              referrerData.email,
+              email.toLowerCase(),
+              'signup'
+            );
+            if (airdropResult.success) {
+              console.log(`🪂 Signup airdrop sent to referrer ${referrerData.email}`);
+            }
+          }
+        } catch (referrerError) {
+          console.warn('[Signup] Referrer airdrop error (non-fatal):', referrerError);
+        }
+      }
+
+      return {
+        success: true,
+        tier: tierName,
+        tierNumber,
+        position: signupResult.position || 0,
+        spotsLeft: signupResult.spotsLeft || 0,
+        userId: authResult.userId,
+        referralCode,
+        referralLink,
+      };
+    } catch (signupError: any) {
+      console.error('❌ Signup API error:', signupError);
+      throw new Error(signupError.message || 'Unable to complete registration. Please try again.');
     }
   } catch (error: any) {
     console.error('Verification error:', error);

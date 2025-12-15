@@ -174,19 +174,23 @@ export const Hero: React.FC = () => {
     try {
       // For existing users, check if they have a wallet
       if (existingUser?.exists && existingUser.referralCode && existingUser.referralLink) {
-        console.log(`✅ Welcome back ${email}! Tier: ${existingUser.tierName}`);
+        console.log(`✅ Welcome back ${email}! Tier: ${existingUser.tierName}, Auth: ${existingUser.isAuthenticated}`);
 
-        // Check if wallet is already set
-        if (existingUser.walletAddress) {
+        // SECURITY: Only allow wallet input if user is authenticated
+        if (!existingUser.isAuthenticated) {
+          console.warn('🚫 User exists but not authenticated - requiring OTP verification');
+          // Don't return - fall through to normal verification flow
+        } else if (existingUser.walletAddress) {
           // Has wallet - show code immediately
           setIsSubmitted(true);
           setReferral({ code: existingUser.referralCode, link: existingUser.referralLink });
+          return;
         } else {
-          // No wallet - show wallet input first
-          console.log('🔐 Existing user needs to set wallet before getting code');
+          // Authenticated but no wallet - show wallet input
+          console.log('🔐 Authenticated user needs to set wallet before getting code');
           setShowWalletInput(true);
+          return;
         }
-        return;
       }
 
       // New user - verify with backend API (thirdweb + Supabase)

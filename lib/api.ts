@@ -506,6 +506,7 @@ export interface ExistingUserInfo {
   referralCode?: string;
   referralLink?: string;
   walletAddress?: string; // Solana wallet for airdrops
+  isAuthenticated?: boolean; // true if thirdweb_user_id is set
 }
 
 export async function checkExistingUser(email: string): Promise<ExistingUserInfo> {
@@ -519,10 +520,10 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
 
     console.log('[checkExistingUser] Querying waitlist_sync...');
 
-    // Check waitlist_sync first
+    // Check waitlist_sync first - include thirdweb_user_id to verify authentication status
     const { data: waitlistData, error: waitlistError } = await supabase
       .from('waitlist_sync')
-      .select('email, tier_name, tier_number, referral_code, solana_wallet_address')
+      .select('email, tier_name, tier_number, referral_code, solana_wallet_address, thirdweb_user_id')
       .eq('email', email.toLowerCase())
       .maybeSingle();
 
@@ -534,8 +535,9 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
     }
 
     if (waitlistData) {
+      const isAuthenticated = !!waitlistData.thirdweb_user_id;
       const referralLink = `https://bearo.cash/?ref=${encodeURIComponent(waitlistData.referral_code)}`;
-      console.log(`✅ Found existing user: ${email} - ${waitlistData.tier_name} - wallet: ${waitlistData.solana_wallet_address || 'not set'}`);
+      console.log(`✅ Found existing user: ${email} - ${waitlistData.tier_name} - auth: ${isAuthenticated} - wallet: ${waitlistData.solana_wallet_address || 'not set'}`);
       return {
         exists: true,
         email: waitlistData.email,
@@ -544,6 +546,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
         referralCode: waitlistData.referral_code,
         referralLink,
         walletAddress: waitlistData.solana_wallet_address || undefined,
+        isAuthenticated, // NEW: indicates if user completed thirdweb auth
       };
     }
 

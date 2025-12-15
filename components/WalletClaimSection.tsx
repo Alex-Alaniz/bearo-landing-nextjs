@@ -245,22 +245,30 @@ export const WalletClaimSection: React.FC = () => {
     setError(null);
 
     try {
-      if (!supabase || !allocation) {
-        setError('Database connection not available');
+      if (!allocation) {
+        setError('No allocation data found');
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from('airdrop_allocations')
-        .update({
-          wallet_address: wallet,
-          updated_at: new Date().toISOString()
-        })
-        .eq('referral_code', allocation.referral_code);
+      // Use secure API endpoint instead of direct Supabase
+      const response = await fetch('/api/link-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: allocation.email,
+          referralCode: allocation.referral_code,
+          walletAddress: wallet,
+        }),
+      });
 
-      if (updateError) {
-        console.error('[WalletClaim] Update error:', updateError);
-        setError('Failed to save wallet address. Please try again.');
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.requiresAuth) {
+          setError('Please complete email verification on the main signup form first.');
+        } else {
+          setError(result.error || 'Failed to save wallet address. Please try again.');
+        }
         return;
       }
 

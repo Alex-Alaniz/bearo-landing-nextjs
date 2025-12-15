@@ -7,10 +7,12 @@ const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY || '';
 const TREASURY_WALLET = '5WYCBnCjscrxzS9uDxhi5S9f4R4qwCGnnUvDU2vUeU3s';
 const BEARCO_TOKEN = 'FdFUGJSzJXDCZemQbkBwYs3tZEvixyEc8cZfRqJrpump';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEX_SUPABASE_SERVICE_KEY || ''
+  );
+}
 
 async function answerCallback(id: string, text: string) {
   await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
@@ -65,6 +67,8 @@ export async function POST(req: NextRequest) {
     const [action, airdropId] = cb.data.split(':');
     const chatId = cb.message.chat.id.toString();
     const msgId = cb.message.message_id;
+
+    const supabase = getSupabase();
 
     const { data: airdrop } = await supabase
       .from('airdrop_queue')

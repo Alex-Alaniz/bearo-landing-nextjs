@@ -383,6 +383,46 @@ export async function verifyAndClaimTier(
           console.warn('[Airdrop] Could not insert airdrop_allocations (non-fatal):', airdropError);
         }
 
+        // If user signed up with a referral code, trigger airdrop to referrer
+        if (validatedReferrer) {
+          try {
+            // Look up referrer's email from their code
+            const { data: referrerData } = await supabase
+              .from('airdrop_allocations')
+              .select('email')
+              .eq('referral_code', validatedReferrer)
+              .single();
+
+            if (referrerData?.email) {
+              // Increment referrer's count
+              const { data: currentData } = await supabase
+                .from('airdrop_allocations')
+                .select('referral_count')
+                .eq('referral_code', validatedReferrer)
+                .single();
+
+              if (currentData) {
+                await supabase
+                  .from('airdrop_allocations')
+                  .update({ referral_count: (currentData.referral_count || 0) + 1 })
+                  .eq('referral_code', validatedReferrer);
+              }
+
+              // Trigger airdrop to referrer
+              const airdropResult = await triggerReferralAirdrop(
+                referrerData.email,
+                email.toLowerCase(),
+                'signup'
+              );
+              if (airdropResult.success) {
+                console.log(`🪂 Signup airdrop sent to referrer ${referrerData.email}`);
+              }
+            }
+          } catch (referrerError) {
+            console.warn('[Signup] Referrer airdrop error (non-fatal):', referrerError);
+          }
+        }
+
         storeLocalFallback(authResult, email, tierNumber, tierName, referralCode, referralLink);
 
         return {
@@ -465,6 +505,7 @@ export interface ExistingUserInfo {
   tierName?: string;
   referralCode?: string;
   referralLink?: string;
+  walletAddress?: string; // Solana wallet for airdrops
 }
 
 export async function checkExistingUser(email: string): Promise<ExistingUserInfo> {
@@ -481,7 +522,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
     // Check waitlist_sync first
     const { data: waitlistData, error: waitlistError } = await supabase
       .from('waitlist_sync')
-      .select('email, tier_name, tier_number, referral_code')
+      .select('email, tier_name, tier_number, referral_code, solana_wallet_address')
       .eq('email', email.toLowerCase())
       .maybeSingle();
 
@@ -494,7 +535,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
 
     if (waitlistData) {
       const referralLink = `https://bearo.cash/?ref=${encodeURIComponent(waitlistData.referral_code)}`;
-      console.log(`✅ Found existing user: ${email} - ${waitlistData.tier_name}`);
+      console.log(`✅ Found existing user: ${email} - ${waitlistData.tier_name} - wallet: ${waitlistData.solana_wallet_address || 'not set'}`);
       return {
         exists: true,
         email: waitlistData.email,
@@ -502,6 +543,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
         tierName: waitlistData.tier_name,
         referralCode: waitlistData.referral_code,
         referralLink,
+        walletAddress: waitlistData.solana_wallet_address || undefined,
       };
     }
 
@@ -513,11 +555,84 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
   }
 }
 
+// Queue airdrop for manual review instead of instant send (anti-sybil measure)
+const BEARCO_TOKEN_ADDRESS = 'FdFUGJSzJXDCZemQbkBwYs3tZEvixyEc8cZfRqJrpump';
+const DEFAULT_AIRDROP_AMOUNT = '500000000'; // 500 tokens (6 decimals)
+
+async function triggerReferralAirdrop(
+  referrerEmail: string,
+  refereeEmail: string,
+  referralType: 'signup' | 'retroactive'
+): Promise<{ success: boolean; queued?: boolean }> {
+  try {
+    if (!supabase) {
+      console.warn('[triggerAirdrop] Supabase not configured');
+      return { success: false };
+    }
+
+    console.log(`📋 Queuing ${referralType} airdrop for referrer: ${referrerEmail}`);
+
+    // Check if referrer is flagged/banned
+    const { data: flaggedAccount } = await supabase
+      .from('flagged_accounts')
+      .select('is_banned, flag_type')
+      .eq('email', referrerEmail.toLowerCase())
+      .maybeSingle();
+
+    if (flaggedAccount?.is_banned) {
+      console.warn(`🚫 Referrer ${referrerEmail} is banned - airdrop blocked`);
+      return { success: false };
+    }
+
+    // Get referrer's wallet address
+    const { data: referrerData } = await supabase
+      .from('waitlist_sync')
+      .select('solana_wallet_address')
+      .eq('email', referrerEmail.toLowerCase())
+      .single();
+
+    if (!referrerData?.solana_wallet_address) {
+      console.warn(`⚠️ Referrer ${referrerEmail} has no wallet - cannot queue airdrop`);
+      return { success: false };
+    }
+
+    // Queue the airdrop for manual review
+    const { error: queueError } = await supabase
+      .from('airdrop_queue')
+      .insert({
+        referrer_email: referrerEmail.toLowerCase(),
+        referee_email: refereeEmail.toLowerCase(),
+        referrer_wallet: referrerData.solana_wallet_address,
+        amount: DEFAULT_AIRDROP_AMOUNT,
+        token_address: BEARCO_TOKEN_ADDRESS,
+        referral_type: referralType,
+        status: flaggedAccount ? 'pending' : 'pending', // Could auto-approve non-flagged later
+        notes: flaggedAccount ? `Referrer flagged as: ${flaggedAccount.flag_type}` : null,
+      });
+
+    if (queueError) {
+      console.error('[triggerAirdrop] Queue error:', queueError);
+      return { success: false };
+    }
+
+    console.log(`✅ Airdrop queued for review: ${referrerEmail}`);
+
+    return {
+      success: true,
+      queued: true
+    };
+  } catch (error) {
+    console.error('[triggerAirdrop] Error:', error);
+    return { success: false };
+  }
+}
+
 // Link a referral code retroactively (for users who signed up without a referral)
 export interface LinkReferralResult {
   success: boolean;
   message: string;
   referrerCode?: string;
+  airdropSent?: boolean;
 }
 
 export async function linkReferralRetroactively(
@@ -655,13 +770,90 @@ export async function linkReferralRetroactively(
 
     console.log(`✅ Retroactive referral linked: ${normalizedEmail} -> ${normalizedCode}`);
 
+    // 10. Trigger airdrop to referrer
+    let airdropSent = false;
+    try {
+      const airdropResult = await triggerReferralAirdrop(
+        referrerData.email,
+        normalizedEmail,
+        'retroactive'
+      );
+      airdropSent = airdropResult.success;
+      if (airdropSent) {
+        console.log(`🪂 Airdrop sent to referrer ${referrerData.email}`);
+      }
+    } catch (airdropError) {
+      console.warn('[linkReferral] Airdrop trigger error (non-fatal):', airdropError);
+    }
+
     return {
       success: true,
-      message: 'Referral linked successfully! Both you and your referrer will receive bonus tokens.',
+      message: airdropSent
+        ? 'Referral linked successfully! Your referrer has been queued for a $BEARCO airdrop.'
+        : 'Referral linked successfully! Both you and your referrer will receive bonus tokens.',
       referrerCode: normalizedCode,
+      airdropSent,
     };
   } catch (error: any) {
     console.error('[linkReferral] Error:', error);
+    return { success: false, message: error.message || 'An error occurred. Please try again.' };
+  }
+}
+
+// Save wallet address for a user (required before showing referral code)
+export interface SaveWalletResult {
+  success: boolean;
+  message: string;
+}
+
+export async function saveWalletAddress(
+  email: string,
+  walletAddress: string
+): Promise<SaveWalletResult> {
+  console.log('[saveWalletAddress] Saving wallet for:', email, 'wallet:', walletAddress.substring(0, 8) + '...');
+
+  if (!supabase) {
+    return { success: false, message: 'Database not available' };
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const trimmedWallet = walletAddress.trim();
+
+  try {
+    // Update waitlist_sync with wallet address
+    const { error: updateError } = await supabase
+      .from('waitlist_sync')
+      .update({
+        solana_wallet_address: trimmedWallet,
+        wallet_set_at: new Date().toISOString(),
+      })
+      .eq('email', normalizedEmail);
+
+    if (updateError) {
+      console.error('[saveWalletAddress] Update error:', updateError);
+      return { success: false, message: 'Failed to save wallet address. Please try again.' };
+    }
+
+    // Also update airdrop_allocations if exists (uses 'wallet_address' not 'solana_wallet_address')
+    try {
+      await supabase
+        .from('airdrop_allocations')
+        .update({
+          wallet_address: trimmedWallet,
+        })
+        .eq('email', normalizedEmail);
+    } catch (airdropError) {
+      console.warn('[saveWalletAddress] Airdrop table update (non-fatal):', airdropError);
+    }
+
+    console.log(`✅ Wallet saved for ${normalizedEmail}: ${trimmedWallet}`);
+
+    return {
+      success: true,
+      message: 'Wallet address saved successfully!',
+    };
+  } catch (error: any) {
+    console.error('[saveWalletAddress] Error:', error);
     return { success: false, message: error.message || 'An error occurred. Please try again.' };
   }
 }

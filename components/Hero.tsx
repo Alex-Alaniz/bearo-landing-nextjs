@@ -4,7 +4,8 @@ import { PhoneFrame } from './PhoneFrame';
 import { TierSelector } from './TierSelector';
 import { EmailVerification } from './EmailVerification';
 import { isOnWaitlist } from '../lib/waitlist';
-import { initiateWaitlistAuth, verifyAndClaimTier, checkExistingUser, ExistingUserInfo, linkReferralRetroactively } from '../lib/api';
+import { initiateWaitlistAuth, verifyAndClaimTier, checkExistingUser, ExistingUserInfo, linkReferralRetroactively, saveWalletAddress } from '../lib/api';
+import { WalletInput } from './WalletInput';
 
 // Animation data will be loaded dynamically
 type AnimationData = Record<string, unknown>;
@@ -57,6 +58,9 @@ export const Hero: React.FC = () => {
   const [linkReferralCode, setLinkReferralCode] = useState('');
   const [isLinkingReferral, setIsLinkingReferral] = useState(false);
   const [linkedReferrer, setLinkedReferrer] = useState<string | null>(null);
+  // Wallet input state (required before showing code)
+  const [showWalletInput, setShowWalletInput] = useState(false);
+  const [isSavingWallet, setIsSavingWallet] = useState(false);
 
   useEffect(() => {
     // Load animations from iOS app
@@ -154,11 +158,20 @@ export const Hero: React.FC = () => {
     setShowEmailVerification(false);
 
     try {
-      // For existing users, use their stored referral info
+      // For existing users, check if they have a wallet
       if (existingUser?.exists && existingUser.referralCode && existingUser.referralLink) {
         console.log(`✅ Welcome back ${email}! Tier: ${existingUser.tierName}`);
-        setIsSubmitted(true);
-        setReferral({ code: existingUser.referralCode, link: existingUser.referralLink });
+
+        // Check if wallet is already set
+        if (existingUser.walletAddress) {
+          // Has wallet - show code immediately
+          setIsSubmitted(true);
+          setReferral({ code: existingUser.referralCode, link: existingUser.referralLink });
+        } else {
+          // No wallet - show wallet input first
+          console.log('🔐 Existing user needs to set wallet before getting code');
+          setShowWalletInput(true);
+        }
         return;
       }
 
@@ -171,27 +184,52 @@ export const Hero: React.FC = () => {
       );
 
       console.log(`✅ ${email} verified and claimed ${claimedTier.name}!`, result);
-      setIsSubmitted(true);
+
+      // Store referral info for after wallet is set
       if (result.referralCode && result.referralLink) {
         setReferral({ code: result.referralCode, link: result.referralLink });
-      } else {
-        // Fallback: read from localStorage if available
-        try {
-          const stored = localStorage.getItem('bearo_referral');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed?.referralCode && parsed?.referralLink) {
-              setReferral({ code: parsed.referralCode, link: parsed.referralLink });
-            }
-          }
-        } catch {}
       }
+
+      // Show wallet input (required before showing code)
+      setShowWalletInput(true);
 
     } catch (error: any) {
       console.error('Error verifying:', error);
       alert(error.message || 'Something went wrong. Please try again!');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle wallet submission
+  const handleWalletSubmit = async (walletAddress: string) => {
+    setIsSavingWallet(true);
+
+    try {
+      // Save wallet to database
+      const result = await saveWalletAddress(email, walletAddress);
+
+      if (!result.success) {
+        alert(result.message || 'Failed to save wallet. Please try again.');
+        return;
+      }
+
+      console.log(`✅ Wallet saved for ${email}: ${walletAddress}`);
+
+      // Close wallet input and show code
+      setShowWalletInput(false);
+      setIsSubmitted(true);
+
+      // If we don't have referral info yet (existing user flow), fetch it
+      if (!referral && existingUser?.referralCode && existingUser?.referralLink) {
+        setReferral({ code: existingUser.referralCode, link: existingUser.referralLink });
+      }
+
+    } catch (error: any) {
+      console.error('Error saving wallet:', error);
+      alert(error.message || 'Failed to save wallet. Please try again.');
+    } finally {
+      setIsSavingWallet(false);
     }
   };
 
@@ -592,6 +630,17 @@ export const Hero: React.FC = () => {
                 setExistingUser(null);
               }}
               isExistingUser={!!existingUser?.exists}
+            />
+          )}
+
+          {/* Wallet Input Modal - Required before showing referral code */}
+          {showWalletInput && claimedTier && (
+            <WalletInput
+              email={email}
+              tierName={claimedTier.name}
+              onWalletSubmit={handleWalletSubmit}
+              onBack={() => setShowWalletInput(false)}
+              isSubmitting={isSavingWallet}
             />
           )}
         </div>

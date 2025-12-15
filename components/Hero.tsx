@@ -61,6 +61,20 @@ export const Hero: React.FC = () => {
   // Wallet input state (required before showing code)
   const [showWalletInput, setShowWalletInput] = useState(false);
   const [isSavingWallet, setIsSavingWallet] = useState(false);
+  // URL referral param capture
+  const [urlReferralCode, setUrlReferralCode] = useState<string | null>(null);
+
+  // Capture ?ref= URL parameter on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref');
+      if (refCode && refCode.match(/^BEAR[A-Z0-9]{4}$/i)) {
+        console.log('📎 Captured referral code from URL:', refCode.toUpperCase());
+        setUrlReferralCode(refCode.toUpperCase());
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Load animations from iOS app
@@ -176,11 +190,13 @@ export const Hero: React.FC = () => {
       }
 
       // New user - verify with backend API (thirdweb + Supabase)
+      // Pass URL referral code if present (5th parameter)
       const result = await verifyAndClaimTier(
         email,
         otp,
         claimedTier.number,
-        claimedTier.name
+        claimedTier.name,
+        urlReferralCode || undefined
       );
 
       console.log(`✅ ${email} verified and claimed ${claimedTier.name}!`, result);
@@ -215,6 +231,25 @@ export const Hero: React.FC = () => {
       }
 
       console.log(`✅ Wallet saved for ${email}: ${walletAddress}`);
+
+      // Auto-link referral from URL if user doesn't have one linked yet
+      if (urlReferralCode && existingUser?.exists && !existingUser?.walletAddress) {
+        // Check if user's own code is different from the referral code (prevent self-referral)
+        if (existingUser.referralCode !== urlReferralCode) {
+          console.log(`🔗 Auto-linking referral from URL: ${urlReferralCode}`);
+          try {
+            const linkResult = await linkReferralRetroactively(email, urlReferralCode);
+            if (linkResult.success) {
+              console.log(`✅ Auto-linked to referrer: ${urlReferralCode}`);
+              setLinkedReferrer(urlReferralCode);
+            } else {
+              console.warn(`⚠️ Auto-link failed: ${linkResult.message}`);
+            }
+          } catch (linkError) {
+            console.warn('Auto-link error (non-fatal):', linkError);
+          }
+        }
+      }
 
       // Close wallet input and show code
       setShowWalletInput(false);

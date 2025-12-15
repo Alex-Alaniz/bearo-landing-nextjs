@@ -4,7 +4,6 @@ import { Hero } from './Hero';
 import { HowItWorks } from './HowItWorks';
 import { SpendSection } from './SpendSection';
 import { Leaderboard } from './Leaderboard';
-import { WalletClaimSection } from './WalletClaimSection';
 import { Footer } from './Footer';
 
 export const BearoContent: React.FC = () => {
@@ -29,9 +28,6 @@ export const BearoContent: React.FC = () => {
 
       {/* Referral Leaderboard */}
       <Leaderboard />
-
-      {/* Wallet Claim for Airdrop */}
-      <WalletClaimSection />
 
       {/* Spend Section */}
       <SpendSection />

@@ -820,9 +820,9 @@ export async function saveWalletAddress(
   const trimmedWallet = walletAddress.trim();
 
   try {
-    // Update waitlist_sync with wallet address
+    // Update base waitlist table (not the view) with wallet address
     const { error: updateError } = await supabase
-      .from('waitlist_sync')
+      .from('waitlist')
       .update({
         solana_wallet_address: trimmedWallet,
         wallet_set_at: new Date().toISOString(),

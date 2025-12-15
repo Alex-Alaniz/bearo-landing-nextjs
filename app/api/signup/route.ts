@@ -4,9 +4,13 @@ import { createClient } from '@supabase/supabase-js';
 // Use service role key - only available on server
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  // Check multiple possible env var names for the service key
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    || process.env.NEX_SUPABASE_SERVICE_KEY
+    || '';
 
   if (!url || !serviceKey) {
+    console.error('Missing Supabase config:', { url: !!url, serviceKey: !!serviceKey });
     throw new Error('Supabase not configured');
   }
 

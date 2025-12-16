@@ -13,8 +13,8 @@ export const supabase = SUPABASE_URL && SUPABASE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
 
-// Database table types - matches waitlist_sync table
-export interface WaitlistSyncEntry {
+// Database table types - matches waitlist table
+export interface WaitlistEntry {
   id?: string;
   email: string;
   tier_name?: string;
@@ -26,6 +26,9 @@ export interface WaitlistSyncEntry {
   linked_referrer_code?: string; // For retroactive linking
   linked_at?: string;
   link_verified?: boolean;
+  solana_wallet_address?: string; // Wallet for airdrops
+  thirdweb_user_id?: string;      // Auth status from thirdweb
+  verified?: boolean;
 }
 
 // Airdrop allocation entry - for leaderboard
@@ -44,8 +47,8 @@ export interface AirdropAllocation {
   wallet_address?: string;
 }
 
-// Legacy type for backwards compatibility
-export type WaitlistEntry = WaitlistSyncEntry;
+// Legacy type alias for backwards compatibility
+export type WaitlistSyncEntry = WaitlistEntry;
 
 export interface TierAvailability {
   tier_number: number;

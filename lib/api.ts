@@ -343,12 +343,12 @@ export async function verifyAndClaimTier(
   }
 }
 
-// Get waitlist count - from Supabase waitlist_sync table
+// Get waitlist count - from Supabase waitlist table
 export async function getWaitlistCountAPI(): Promise<number> {
   try {
     if (supabase) {
       const { count, error } = await supabase
-        .from('waitlist_sync')
+        .from('waitlist')
         .select('*', { count: 'exact', head: true });
 
       if (!error && count !== null) {
@@ -396,11 +396,11 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
       return { exists: false };
     }
 
-    console.log('[checkExistingUser] Querying waitlist_sync...');
+    console.log('[checkExistingUser] Querying waitlist table...');
 
-    // Check waitlist_sync first - include thirdweb_user_id to verify authentication status
+    // Query the waitlist table for user info (includes wallet and auth status)
     const { data: waitlistData, error: waitlistError } = await supabase
-      .from('waitlist_sync')
+      .from('waitlist')
       .select('email, tier_name, tier_number, referral_code, solana_wallet_address, thirdweb_user_id')
       .eq('email', email.toLowerCase())
       .maybeSingle();
@@ -424,7 +424,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
         referralCode: waitlistData.referral_code,
         referralLink,
         walletAddress: waitlistData.solana_wallet_address || undefined,
-        isAuthenticated, // NEW: indicates if user completed thirdweb auth
+        isAuthenticated,
       };
     }
 
@@ -467,7 +467,7 @@ async function triggerReferralAirdrop(
 
     // Get referrer's wallet address
     const { data: referrerData } = await supabase
-      .from('waitlist_sync')
+      .from('waitlist')
       .select('solana_wallet_address')
       .eq('email', referrerEmail.toLowerCase())
       .single();
@@ -532,7 +532,7 @@ export async function linkReferralRetroactively(
   try {
     // 1. Check if user exists
     const { data: userData, error: userError } = await supabase
-      .from('waitlist_sync')
+      .from('waitlist')
       .select('email, referral_code, referred_by, linked_referrer_code')
       .eq('email', normalizedEmail)
       .maybeSingle();
@@ -578,7 +578,7 @@ export async function linkReferralRetroactively(
 
     // 6. Update waitlist_sync with linked referrer
     const { error: updateWaitlistError } = await supabase
-      .from('waitlist_sync')
+      .from('waitlist')
       .update({
         linked_referrer_code: normalizedCode,
         linked_at: new Date().toISOString(),
@@ -758,7 +758,7 @@ export async function saveWalletAddress(
   }
 }
 
-// Get tier availability - from Supabase waitlist_sync table
+// Get tier availability - from Supabase waitlist table
 export async function getTierAvailabilityAPI(): Promise<Record<number, TierAvailability>> {
   try {
     if (supabase) {
@@ -768,7 +768,7 @@ export async function getTierAvailabilityAPI(): Promise<Record<number, TierAvail
       for (const [tierNumStr, maxSpots] of Object.entries(TIER_MAX_SPOTS)) {
         const tierNum = parseInt(tierNumStr);
         const { count, error } = await supabase
-          .from('waitlist_sync')
+          .from('waitlist')
           .select('*', { count: 'exact', head: true })
           .eq('tier_number', tierNum);
 

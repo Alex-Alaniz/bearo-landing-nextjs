@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addBetaTester, isConfigured } from '../../../../lib/appStoreConnect';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Use service role key - only available on server
 function getSupabase() {
@@ -12,6 +12,82 @@ function getSupabase() {
   }
 
   return createClient(url, serviceKey);
+}
+
+interface WaitlistUser {
+  email: string;
+  platform: string | null;
+  verified: boolean;
+  metadata: Record<string, unknown> | null;
+}
+
+async function processInvites(
+  supabase: SupabaseClient,
+  users: WaitlistUser[],
+  dryRun: boolean
+): Promise<Response> {
+  if (dryRun) {
+    return NextResponse.json({
+      success: true,
+      dryRun: true,
+      message: `Would invite ${users.length} users`,
+      users: users.map(u => ({ email: u.email, platform: u.platform })),
+    });
+  }
+
+  // Send invites
+  const results: Array<{ email: string; success: boolean; error?: string; alreadyInvited?: boolean }> = [];
+
+  for (const user of users) {
+    try {
+      const result = await addBetaTester(user.email);
+
+      // Mark as batch-invited in metadata
+      const currentMetadata = user.metadata || {};
+      await supabase
+        .from('waitlist')
+        .update({
+          metadata: {
+            ...currentMetadata,
+            testflight_batch_invited: true,
+            testflight_batch_invited_at: new Date().toISOString(),
+          }
+        })
+        .eq('email', user.email);
+
+      results.push({
+        email: user.email,
+        success: result.success,
+        alreadyInvited: result.alreadyInvited,
+        error: result.error,
+      });
+
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+    } catch (error) {
+      results.push({
+        email: user.email,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  const successCount = results.filter(r => r.success).length;
+  const alreadyInvitedCount = results.filter(r => r.alreadyInvited).length;
+  const failedCount = results.filter(r => !r.success).length;
+
+  return NextResponse.json({
+    success: true,
+    summary: {
+      total: results.length,
+      newInvites: successCount - alreadyInvitedCount,
+      alreadyInvited: alreadyInvitedCount,
+      failed: failedCount,
+    },
+    results,
+  });
 }
 
 /**
@@ -38,13 +114,7 @@ export async function POST(req: NextRequest) {
     const { adminKey, dryRun = false, limit = 50 } = body;
 
     // Security: Verify admin key
-    const expectedKey = process.env.ADMIN_API_KEY;
-    console.log('[batch-testflight] Key check:', {
-      hasExpectedKey: !!expectedKey,
-      expectedKeyLength: expectedKey?.length,
-      providedKeyLength: adminKey?.length,
-      keysMatch: adminKey === expectedKey
-    });
+    const expectedKey = process.env.ADMIN_API_KEY?.trim();
     if (!expectedKey || adminKey !== expectedKey) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -60,14 +130,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get all verified users who haven't been invited yet
-    // We'll track invites in metadata
-    const { data: users, error: fetchError } = await supabase
+    // Fetch more users than needed to account for already-invited ones
+    const fetchLimit = limit * 5;
+    const { data: allUsers, error: fetchError } = await supabase
       .from('waitlist')
       .select('email, platform, verified, metadata')
       .eq('verified', true)
       .order('signup_position', { ascending: true })
-      .limit(limit);
+      .limit(fetchLimit);
 
     if (fetchError) {
       return NextResponse.json(
@@ -76,82 +146,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!users || users.length === 0) {
+    // Filter out users who have already been batch-invited
+    const usersToInvite = (allUsers || []).filter(u => {
+      const metadata = u.metadata as Record<string, unknown> | null;
+      return !metadata?.testflight_batch_invited;
+    }).slice(0, limit);
+
+    if (usersToInvite.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'No users to invite',
+        summary: { total: 0, newInvites: 0, alreadyInvited: 0, failed: 0 },
         results: [],
       });
     }
 
-    // Filter out users who have already been batch-invited
-    const usersToInvite = users.filter(u => {
-      const metadata = u.metadata as Record<string, unknown> | null;
-      return !metadata?.testflight_batch_invited;
-    });
-
-    if (dryRun) {
-      return NextResponse.json({
-        success: true,
-        dryRun: true,
-        message: `Would invite ${usersToInvite.length} users`,
-        users: usersToInvite.map(u => ({ email: u.email, platform: u.platform })),
-      });
-    }
-
-    // Send invites
-    const results: Array<{ email: string; success: boolean; error?: string; alreadyInvited?: boolean }> = [];
-
-    for (const user of usersToInvite) {
-      try {
-        const result = await addBetaTester(user.email);
-
-        // Mark as batch-invited in metadata
-        const currentMetadata = (user.metadata as Record<string, unknown>) || {};
-        await supabase
-          .from('waitlist')
-          .update({
-            metadata: {
-              ...currentMetadata,
-              testflight_batch_invited: true,
-              testflight_batch_invited_at: new Date().toISOString(),
-            }
-          })
-          .eq('email', user.email);
-
-        results.push({
-          email: user.email,
-          success: result.success,
-          alreadyInvited: result.alreadyInvited,
-          error: result.error,
-        });
-
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-      } catch (error) {
-        results.push({
-          email: user.email,
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    }
-
-    const successCount = results.filter(r => r.success).length;
-    const alreadyInvitedCount = results.filter(r => r.alreadyInvited).length;
-    const failedCount = results.filter(r => !r.success).length;
-
-    return NextResponse.json({
-      success: true,
-      summary: {
-        total: results.length,
-        newInvites: successCount - alreadyInvitedCount,
-        alreadyInvited: alreadyInvitedCount,
-        failed: failedCount,
-      },
-      results,
-    });
+    return await processInvites(supabase, usersToInvite, dryRun);
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

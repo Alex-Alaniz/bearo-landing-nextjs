@@ -19,10 +19,11 @@ interface AppStoreConnectConfig {
 }
 
 function getConfig(): AppStoreConnectConfig {
-  const keyId = process.env.APP_STORE_CONNECT_KEY_ID;
-  const issuerId = process.env.APP_STORE_CONNECT_ISSUER_ID;
-  const privateKeyBase64 = process.env.APP_STORE_CONNECT_PRIVATE_KEY;
-  const appId = process.env.APP_STORE_CONNECT_APP_ID;
+  // Trim all env vars to remove accidental newlines
+  const keyId = process.env.APP_STORE_CONNECT_KEY_ID?.trim();
+  const issuerId = process.env.APP_STORE_CONNECT_ISSUER_ID?.trim();
+  const privateKeyBase64 = process.env.APP_STORE_CONNECT_PRIVATE_KEY?.trim();
+  const appId = process.env.APP_STORE_CONNECT_APP_ID?.trim();
 
   if (!keyId || !issuerId || !privateKeyBase64 || !appId) {
     throw new Error('Missing App Store Connect configuration. Required: APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_APP_ID');

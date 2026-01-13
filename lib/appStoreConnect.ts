@@ -31,6 +31,16 @@ function getConfig(): AppStoreConnectConfig {
   // Decode base64 private key
   const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
 
+  // Debug: log key info (not the actual key)
+  console.log('[ASC] Config loaded:', {
+    keyId,
+    issuerId,
+    appId,
+    privateKeyBase64Length: privateKeyBase64.length,
+    decodedKeyLength: privateKey.length,
+    keyStartsWith: privateKey.substring(0, 27), // Just "-----BEGIN PRIVATE KEY-----"
+  });
+
   return { keyId, issuerId, privateKey, appId };
 }
 
@@ -57,11 +67,11 @@ async function generateToken(config: AppStoreConnectConfig): Promise<string> {
 }
 
 /**
- * Get beta group ID for the app (first public beta group)
+ * Get beta group ID for the app (first external beta group)
  */
 async function getBetaGroupId(token: string, appId: string): Promise<string> {
   const response = await fetch(
-    `${APP_STORE_API_BASE}/apps/${appId}/betaGroups?filter[isInternalGroup]=false&limit=1`,
+    `${APP_STORE_API_BASE}/apps/${appId}/betaGroups?limit=10`,
     {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -78,10 +88,14 @@ async function getBetaGroupId(token: string, appId: string): Promise<string> {
   const data = await response.json();
 
   if (!data.data || data.data.length === 0) {
-    throw new Error('No external beta groups found for this app. Create a beta group in App Store Connect first.');
+    throw new Error('No beta groups found for this app. Create a beta group in App Store Connect first.');
   }
 
-  return data.data[0].id;
+  // Find the first external (non-internal) beta group, or use the first one if all are internal
+  const externalGroup = data.data.find((group: any) => !group.attributes?.isInternalGroup);
+  const groupToUse = externalGroup || data.data[0];
+
+  return groupToUse.id;
 }
 
 export interface AddTesterResult {

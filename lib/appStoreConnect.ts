@@ -28,15 +28,28 @@ function getConfig(): AppStoreConnectConfig {
     throw new Error('Missing App Store Connect configuration. Required: APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_APP_ID');
   }
 
-  // Decode base64 private key
-  const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
+  // Try to decode as base64 first, fall back to raw PEM if it fails
+  let privateKey: string;
+  try {
+    const decoded = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
+    // Check if decoded looks like a PEM key
+    if (decoded.includes('-----BEGIN PRIVATE KEY-----')) {
+      privateKey = decoded;
+    } else {
+      // Not base64 encoded, use as-is (might have escaped newlines)
+      privateKey = privateKeyBase64.replace(/\\n/g, '\n');
+    }
+  } catch {
+    // Failed to decode, use as-is with escaped newlines converted
+    privateKey = privateKeyBase64.replace(/\\n/g, '\n');
+  }
 
   // Debug: log key info (not the actual key)
   console.log('[ASC] Config loaded:', {
     keyId,
     issuerId,
     appId,
-    privateKeyBase64Length: privateKeyBase64.length,
+    rawKeyLength: privateKeyBase64.length,
     decodedKeyLength: privateKey.length,
     keyStartsWith: privateKey.substring(0, 27), // Just "-----BEGIN PRIVATE KEY-----"
   });

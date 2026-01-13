@@ -130,14 +130,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch more users than needed to account for already-invited ones
-    const fetchLimit = limit * 5;
+    // Fetch all verified users (we filter in memory since JSONB queries are complex)
     const { data: allUsers, error: fetchError } = await supabase
       .from('waitlist')
       .select('email, platform, verified, metadata')
       .eq('verified', true)
-      .order('signup_position', { ascending: true })
-      .limit(fetchLimit);
+      .order('signup_position', { ascending: true });
 
     if (fetchError) {
       return NextResponse.json(

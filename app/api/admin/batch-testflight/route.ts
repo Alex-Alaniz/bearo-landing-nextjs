@@ -39,6 +39,12 @@ export async function POST(req: NextRequest) {
 
     // Security: Verify admin key
     const expectedKey = process.env.ADMIN_API_KEY;
+    console.log('[batch-testflight] Key check:', {
+      hasExpectedKey: !!expectedKey,
+      expectedKeyLength: expectedKey?.length,
+      providedKeyLength: adminKey?.length,
+      keysMatch: adminKey === expectedKey
+    });
     if (!expectedKey || adminKey !== expectedKey) {
       return NextResponse.json(
         { error: 'Unauthorized' },

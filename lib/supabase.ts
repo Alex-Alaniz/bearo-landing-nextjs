@@ -1,5 +1,6 @@
 // Supabase client setup
 import { createClient } from '@supabase/supabase-js';
+import type { Platform } from './deviceDetection';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 // Use anon key only - service key should never be exposed on frontend
@@ -29,6 +30,7 @@ export interface WaitlistEntry {
   solana_wallet_address?: string; // Wallet for airdrops
   thirdweb_user_id?: string;      // Auth status from thirdweb
   verified?: boolean;
+  platform?: Platform;            // Device platform: ios, android, desktop, unknown
 }
 
 // Airdrop allocation entry - for leaderboard

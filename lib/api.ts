@@ -1,6 +1,7 @@
 // Frontend API client for thirdweb authentication + Supabase database sync
 
 import { supabase, WaitlistSyncEntry } from './supabase';
+import type { Platform } from './deviceDetection';
 
 // Use correct thirdweb API base URL
 const THIRDWEB_API = 'https://api.thirdweb.com/v1';
@@ -169,7 +170,8 @@ export async function verifyAndClaimTier(
   otp: string,
   tierNumber: number,
   tierName: string,
-  referredBy?: string // Optional: referral code of who referred this user
+  referredBy?: string, // Optional: referral code of who referred this user
+  platform?: Platform  // Optional: device platform (ios, android, desktop, unknown)
 ): Promise<VerifyResponse> {
   try {
     // 1. Complete thirdweb authentication
@@ -281,6 +283,7 @@ export async function verifyAndClaimTier(
           tierName,
           referredBy,
           thirdwebUserId: authResult.userId,
+          platform,
         }),
       });
 

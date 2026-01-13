@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import type { Platform } from '../../../lib/deviceDetection';
+import { addBetaTester, isConfigured as isTestFlightConfigured } from '../../../lib/appStoreConnect';
 
 // Use service role key - only available on server
 function getSupabase() {
@@ -38,7 +40,14 @@ function generateReferralCode(): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, tierNumber, tierName, referredBy, thirdwebUserId } = body;
+    const { email, tierNumber, tierName, referredBy, thirdwebUserId, platform } = body as {
+      email: string;
+      tierNumber: number;
+      tierName: string;
+      referredBy?: string;
+      thirdwebUserId: string;
+      platform?: Platform;
+    };
 
     // Validate required fields
     if (!email || !tierNumber || !tierName) {
@@ -123,6 +132,7 @@ export async function POST(req: NextRequest) {
         referred_by: validatedReferrer,
         thirdweb_user_id: thirdwebUserId,
         verified: true, // They've completed thirdweb auth
+        platform: platform || 'unknown', // Device platform for TestFlight/Play Store targeting
       });
 
     if (insertError) {
@@ -154,7 +164,20 @@ export async function POST(req: NextRequest) {
       // Non-fatal - airdrop allocation insert failed
     }
 
-    console.log(`✅ [API] ${normalizedEmail} signed up: ${tierName}, code: ${referralCode}`);
+    // Trigger TestFlight invite for iOS users (fire-and-forget, non-blocking)
+    if (platform === 'ios' && isTestFlightConfigured()) {
+      addBetaTester(normalizedEmail).then(result => {
+        if (result.success) {
+          console.log(`📱 [TestFlight] Invite sent to ${normalizedEmail}${result.alreadyInvited ? ' (already invited)' : ''}`);
+        } else {
+          console.error(`📱 [TestFlight] Failed for ${normalizedEmail}:`, result.error);
+        }
+      }).catch(err => {
+        console.error(`📱 [TestFlight] Error for ${normalizedEmail}:`, err);
+      });
+    }
+
+    console.log(`✅ [API] ${normalizedEmail} signed up: ${tierName}, code: ${referralCode}, platform: ${platform || 'unknown'}`);
 
     return NextResponse.json({
       success: true,

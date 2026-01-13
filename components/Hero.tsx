@@ -5,6 +5,7 @@ import { TierSelector } from './TierSelector';
 import { EmailVerification } from './EmailVerification';
 import { isOnWaitlist } from '../lib/waitlist';
 import { initiateWaitlistAuth, verifyAndClaimTier, checkExistingUser, ExistingUserInfo, linkReferralRetroactively, saveWalletAddress } from '../lib/api';
+import { detectPlatform } from '../lib/deviceDetection';
 import { WalletInput } from './WalletInput';
 
 // Animation data will be loaded dynamically
@@ -194,13 +195,15 @@ export const Hero: React.FC = () => {
       }
 
       // New user - verify with backend API (thirdweb + Supabase)
-      // Pass URL referral code if present (5th parameter)
+      // Pass URL referral code if present (5th parameter) and detected platform (6th parameter)
+      const userPlatform = detectPlatform();
       const result = await verifyAndClaimTier(
         email,
         otp,
         claimedTier.number,
         claimedTier.name,
-        urlReferralCode || undefined
+        urlReferralCode || undefined,
+        userPlatform
       );
 
       console.log(`✅ ${email} verified and claimed ${claimedTier.name}!`, result);

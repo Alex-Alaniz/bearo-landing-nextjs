@@ -141,3 +141,37 @@
   background-size: 200% 100%;
   animation: shimmer 3s linear infinite;
 }
+
+/* Mobile improvements */
+@media (max-width: 640px) {
+  /* Prevent zoom on input focus (iOS) */
+  input[type="email"],
+  input[type="text"],
+  input[type="tel"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Better touch targets */
+  button,
+  [role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* Touch manipulation for better mobile responsiveness */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Safe area support for notched devices */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Prevent overscroll bounce on modals */
+.overscroll-contain {
+  overscroll-behavior: contain;
+}

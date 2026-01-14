@@ -168,33 +168,38 @@ export const TierSelector: React.FC<TierSelectorProps> = ({ email, onTierClaimed
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={onBack} />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-3xl max-h-[90vh] bg-gradient-to-br from-black/95 via-black/90 to-black/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
-        
+      {/* Modal - Full height on mobile, centered on desktop */}
+      <div className="relative w-full sm:max-w-3xl h-[95vh] sm:h-auto sm:max-h-[90vh] bg-gradient-to-br from-black/95 via-black/90 to-black/95 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
+
+        {/* Mobile drag indicator */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-white/30 rounded-full" />
+        </div>
+
         {/* Header */}
-        <div className="sticky top-0 bg-black/90 backdrop-blur-xl border-b border-white/10 p-6 z-10">
+        <div className="sticky top-0 bg-black/90 backdrop-blur-xl border-b border-white/10 px-4 py-4 sm:p-6 z-10">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-bold text-white">Choose Your Tier</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Choose Your Tier</h2>
             <button
               onClick={onBack}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-2 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors touch-manipulation"
             >
               <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          <p className="text-white/60 text-sm">
+          <p className="text-white/60 text-xs sm:text-sm truncate">
             Joining as: <span className="text-bearo-honey font-semibold">{email}</span>
           </p>
         </div>
 
         {/* Tier Options - Scrollable */}
-        <div className="p-6 space-y-3 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div className="px-3 py-4 sm:p-6 space-y-3 overflow-y-auto max-h-[calc(95vh-220px)] sm:max-h-[calc(90vh-200px)] overscroll-contain">
           {tierOptions.map((tier) => {
             const spotsLeft = getSpotsRemaining(tier);
             const isFull = isTierFull(tier);
@@ -255,9 +260,9 @@ export const TierSelector: React.FC<TierSelectorProps> = ({ email, onTierClaimed
 
                     <p className="text-sm text-white/70 mb-3">{tier.description}</p>
 
-                    {/* Perks Grid */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {tier.perks.map((perk, i) => (
+                    {/* Perks Grid - Single column on mobile */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                      {tier.perks.slice(0, 4).map((perk, i) => (
                         <div key={i} className="flex items-start gap-1.5">
                           <span className="text-bearo-honey text-xs mt-0.5">✓</span>
                           <span className="text-xs text-white/60">{perk}</span>
@@ -290,26 +295,26 @@ export const TierSelector: React.FC<TierSelectorProps> = ({ email, onTierClaimed
         </div>
 
         {/* Footer - Claim Button */}
-        <div className="sticky bottom-0 bg-black/90 backdrop-blur-xl border-t border-white/10 p-6">
-          <div className="flex gap-3">
+        <div className="sticky bottom-0 bg-black/90 backdrop-blur-xl border-t border-white/10 px-3 py-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="flex gap-2 sm:gap-3">
             <button
               onClick={onBack}
-              className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-colors"
+              className="px-4 sm:px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/10 text-white font-medium transition-colors touch-manipulation"
             >
-              ← Back
+              ←
             </button>
             <button
               onClick={handleClaim}
               disabled={selectedTier === null}
-              className={`flex-1 px-8 py-3 rounded-xl font-semibold transition-all ${
+              className={`flex-1 px-4 sm:px-8 py-3 rounded-xl font-semibold transition-all touch-manipulation ${
                 selectedTier !== null
-                  ? 'bg-gradient-to-r from-bearo-honey to-bearo-amber text-black hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] scale-100 hover:scale-105'
+                  ? 'bg-gradient-to-r from-bearo-honey to-bearo-amber text-black active:scale-[0.98]'
                   : 'bg-white/5 text-white/40 cursor-not-allowed'
               }`}
             >
               {selectedTier !== null
-                ? `🎯 Claim ${tierOptions.find(t => t.tierNumber === selectedTier)?.tier} Spot`
-                : 'Select a tier to continue'}
+                ? `Claim ${tierOptions.find(t => t.tierNumber === selectedTier)?.tier}`
+                : 'Select a tier'}
             </button>
           </div>
 

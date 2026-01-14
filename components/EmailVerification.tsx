@@ -120,39 +120,46 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-md bg-gradient-to-br from-black/95 via-black/90 to-black/95 border border-white/10 rounded-3xl shadow-2xl p-8">
+      {/* Modal - Bottom sheet on mobile, centered on desktop */}
+      <div className="relative w-full sm:max-w-md bg-gradient-to-br from-black/95 via-black/90 to-black/95 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:p-8">
+
+        {/* Mobile drag indicator */}
+        <div className="sm:hidden flex justify-center mb-4">
+          <div className="w-10 h-1 bg-white/30 rounded-full" />
+        </div>
         
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-bearo-honey to-bearo-amber flex items-center justify-center text-3xl shadow-lg">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-2xl bg-gradient-to-br from-bearo-honey to-bearo-amber flex items-center justify-center text-2xl sm:text-3xl shadow-lg">
             {tierEmoji}
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Verify Your Email</h2>
-          <p className="text-white/60 text-sm">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Verify Your Email</h2>
+          <p className="text-white/60 text-xs sm:text-sm">
             We sent a 6-digit code to<br />
-            <span className="text-bearo-honey font-semibold">{email}</span>
+            <span className="text-bearo-honey font-semibold break-all">{email}</span>
           </p>
         </div>
 
         {/* OTP Input */}
         <div className="mb-6">
-          <div className="flex gap-2 justify-center mb-4">
+          <div className="flex gap-2 sm:gap-3 justify-center mb-4">
             {otp.map((digit, index) => (
               <input
                 key={index}
                 ref={el => { inputRefs.current[index] = el; }}
                 type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="one-time-code"
                 maxLength={1}
                 value={digit}
-                onChange={e => handleChange(index, e.target.value)}
+                onChange={e => handleChange(index, e.target.value.replace(/\D/g, ''))}
                 onKeyDown={e => handleKeyDown(index, e)}
-                className="w-12 h-14 text-center text-2xl font-bold bg-white/5 border-2 border-white/10 rounded-xl text-white focus:border-bearo-honey focus:bg-white/10 focus:outline-none transition-all"
+                className="w-11 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold bg-white/5 border-2 border-white/10 rounded-xl text-white focus:border-bearo-honey focus:bg-white/10 focus:outline-none transition-all touch-manipulation"
                 disabled={isVerifying}
               />
             ))}

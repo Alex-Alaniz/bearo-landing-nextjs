@@ -482,39 +482,75 @@ export const Hero: React.FC = () => {
           </div>
         </div>
 
-        <div id="waitlist-signup" className="relative z-30 mt-16 w-full max-w-xl scroll-mt-32">
+        <div id="waitlist-signup" className="relative z-30 mt-16 w-full max-w-xl scroll-mt-32 px-4 sm:px-0">
           {!isSubmitted ? (
             <form onSubmit={handleCTA} className="relative">
-              {/* Rainbow Border Effect - only on edges */}
-              <div className="relative rounded-full rainbow-border p-[3px]">
-                <div className="w-full h-full rounded-full bg-[#1a1a1c] border border-white/10 flex gap-2 p-1.5 md:h-16">
+              {/* Mobile: Stacked layout, Desktop: Inline layout */}
+              {/* Mobile Layout (stacked) */}
+              <div className="flex flex-col gap-3 sm:hidden">
+                <div className="relative rounded-2xl rainbow-border p-[2px]">
                   <input
                     type="email"
                     inputMode="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    className="flex-1 px-5 py-3 md:py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/60 text-sm md:text-base font-display font-semibold tracking-wide focus:outline-none focus:border-bearo-honey/50 focus:bg-white/15 transition-all"
+                    placeholder="Enter your email"
+                    className="w-full px-5 py-4 rounded-2xl bg-[#1a1a1c] border border-white/10 text-white placeholder:text-white/50 text-base font-semibold tracking-wide focus:outline-none focus:border-bearo-honey/50 focus:bg-white/5 transition-all"
                     required
                     disabled={isSubmitting}
                   />
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || isCheckingEmail}
-                    className="flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-bearo-honey to-bearo-amber px-5 py-3 md:px-6 md:py-4 text-sm md:text-base font-semibold uppercase text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] whitespace-nowrap disabled:opacity-50"
-                  >
-                    {isSubmitting || isCheckingEmail ? (
-                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                      </svg>
-                    ) : (
-                      <>
-                        Join Waitlist
-                        <ArrowUpRight className="h-4 w-4 text-white" />
-                      </>
-                    )}
-                  </button>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isCheckingEmail}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-bearo-honey to-bearo-amber px-6 py-4 text-base font-semibold uppercase text-white transition-transform duration-200 active:scale-[0.98] disabled:opacity-50"
+                >
+                  {isSubmitting || isCheckingEmail ? (
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                  ) : (
+                    <>
+                      Join Waitlist
+                      <ArrowUpRight className="h-5 w-5 text-white" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Desktop Layout (inline) */}
+              <div className="hidden sm:block">
+                <div className="relative rounded-full rainbow-border p-[3px]">
+                  <div className="w-full h-full rounded-full bg-[#1a1a1c] border border-white/10 flex gap-2 p-1.5 md:h-16 overflow-hidden">
+                    <input
+                      type="email"
+                      inputMode="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email"
+                      className="flex-1 min-w-0 px-5 py-3 md:py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/60 text-sm md:text-base font-display font-semibold tracking-wide focus:outline-none focus:border-bearo-honey/50 focus:bg-white/15 transition-all"
+                      required
+                      disabled={isSubmitting}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || isCheckingEmail}
+                      className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-bearo-honey to-bearo-amber px-5 py-3 md:px-6 md:py-4 text-sm md:text-base font-semibold uppercase text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] whitespace-nowrap disabled:opacity-50 overflow-hidden"
+                    >
+                      {isSubmitting || isCheckingEmail ? (
+                        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                      ) : (
+                        <>
+                          Join Waitlist
+                          <ArrowUpRight className="h-4 w-4 text-white" />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>

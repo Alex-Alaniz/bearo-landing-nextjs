@@ -306,11 +306,12 @@ export const TierSelector: React.FC<TierSelectorProps> = ({ email, onTierClaimed
             <button
               onClick={handleClaim}
               disabled={selectedTier === null}
-              className={`flex-1 px-4 sm:px-8 py-3.5 rounded-xl font-bold text-base transition-all touch-manipulation ${
-                selectedTier !== null
-                  ? 'bg-gradient-to-r from-bearo-honey to-bearo-amber text-black shadow-lg shadow-bearo-honey/30 active:scale-[0.98]'
-                  : 'bg-white/10 border border-white/20 text-white/50 cursor-not-allowed'
-              }`}
+              className="flex-1 px-4 sm:px-8 py-3.5 rounded-xl font-bold text-base transition-all touch-manipulation disabled:bg-white/10 disabled:border disabled:border-white/20 disabled:text-white/50 disabled:cursor-not-allowed"
+              style={selectedTier !== null ? {
+                background: 'linear-gradient(to right, #f97316, #f59e0b)',
+                color: 'white',
+                boxShadow: '0 10px 25px -5px rgba(249, 115, 22, 0.4)'
+              } : {}}
             >
               {selectedTier !== null
                 ? `Continue →`

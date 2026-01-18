@@ -164,39 +164,37 @@ export async function POST(req: NextRequest) {
       // Non-fatal - airdrop allocation insert failed
     }
 
-    // Trigger TestFlight invite for iOS users (tracked, non-blocking to response)
+    // Trigger TestFlight invite for iOS users (BLOCKING - must complete before response)
+    // Serverless functions terminate after response, so we MUST await this
     if (platform === 'ios' && isTestFlightConfigured()) {
-      // Fire off the invite but track the result in the database
-      addBetaTester(normalizedEmail).then(async (result) => {
+      try {
+        const result = await addBetaTester(normalizedEmail);
+
         // Track the invite attempt in metadata
-        const metadata: Record<string, unknown> = {
+        const testflightMetadata: Record<string, unknown> = {
           testflight_invited: result.success,
           testflight_invited_at: new Date().toISOString(),
           testflight_already_invited: result.alreadyInvited || false,
         };
 
         if (!result.success && result.error) {
-          metadata.testflight_error = result.error;
+          testflightMetadata.testflight_error = result.error;
         }
 
         // Update the user's metadata with TestFlight status
-        try {
-          await supabase
-            .from('waitlist')
-            .update({ metadata })
-            .eq('email', normalizedEmail);
+        await supabase
+          .from('waitlist')
+          .update({ metadata: testflightMetadata })
+          .eq('email', normalizedEmail);
 
-          if (result.success) {
-            console.log(`📱 [TestFlight] Invite sent to ${normalizedEmail}${result.alreadyInvited ? ' (already invited)' : ''}`);
-          } else {
-            console.error(`📱 [TestFlight] Failed for ${normalizedEmail}:`, result.error);
-          }
-        } catch (updateErr) {
-          console.error(`📱 [TestFlight] Failed to update metadata for ${normalizedEmail}:`, updateErr);
+        if (result.success) {
+          console.log(`📱 [TestFlight] Invite sent to ${normalizedEmail}${result.alreadyInvited ? ' (already invited)' : ''}`);
+        } else {
+          console.error(`📱 [TestFlight] Failed for ${normalizedEmail}:`, result.error);
         }
-      }).catch(async (err) => {
-        console.error(`📱 [TestFlight] Error for ${normalizedEmail}:`, err);
-        // Track the error in metadata
+      } catch (testflightErr) {
+        console.error(`📱 [TestFlight] Error for ${normalizedEmail}:`, testflightErr);
+        // Track the error in metadata (non-fatal to signup)
         try {
           await supabase
             .from('waitlist')
@@ -204,14 +202,14 @@ export async function POST(req: NextRequest) {
               metadata: {
                 testflight_invited: false,
                 testflight_invited_at: new Date().toISOString(),
-                testflight_error: err instanceof Error ? err.message : 'Unknown error',
+                testflight_error: testflightErr instanceof Error ? testflightErr.message : 'Unknown error',
               }
             })
             .eq('email', normalizedEmail);
         } catch {
           // Ignore metadata update error
         }
-      });
+      }
     }
 
     console.log(`✅ [API] ${normalizedEmail} signed up: ${tierName}, code: ${referralCode}, platform: ${platform || 'unknown'}`);

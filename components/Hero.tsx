@@ -276,7 +276,7 @@ export const Hero: React.FC = () => {
   };
 
   return (
-    <section className="relative flex min-h-screen w-full flex-col items-center overflow-hidden bg-bearo-dark text-white selection:bg-white selection:text-black">
+    <section className="relative flex min-h-screen w-full flex-col items-center bg-bearo-dark text-white selection:bg-white selection:text-black">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -316,7 +316,7 @@ export const Hero: React.FC = () => {
         </div>
 
         {/* iPhone Mockup with Real iOS Auth Flow UI - Complete Redesign */}
-        <div className="relative flex items-center justify-center mt-12 mb-8">
+        <div className="relative z-10 flex items-center justify-center mt-12 mb-8">
           {/* Honey glow behind phone */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[600px] bg-gradient-to-b from-[#F97316]/20 via-[#FBBF24]/15 to-[#D97706]/10 rounded-full blur-[100px] animate-glow-pulse -z-10" />
           
@@ -482,7 +482,7 @@ export const Hero: React.FC = () => {
           </div>
         </div>
 
-        <div id="waitlist-signup" className="relative z-30 mt-16 w-full max-w-xl scroll-mt-32 px-4 sm:px-0">
+        <div id="waitlist-signup" className="relative z-40 mt-16 w-full max-w-xl scroll-mt-32 px-4 sm:px-0">
           {!isSubmitted ? (
             <form onSubmit={handleCTA} className="relative">
               {/* Mobile: Stacked layout, Desktop: Inline layout */}
@@ -522,7 +522,7 @@ export const Hero: React.FC = () => {
               {/* Desktop Layout (inline) */}
               <div className="hidden sm:block">
                 <div className="relative rounded-full rainbow-border p-[3px]">
-                  <div className="w-full h-full rounded-full bg-[#1a1a1c] border border-white/10 flex gap-2 p-1.5 md:h-16 overflow-hidden">
+                  <div className="w-full h-full rounded-full bg-[#1a1a1c] border border-white/10 flex gap-2 p-1.5 md:h-16">
                     <input
                       type="email"
                       inputMode="email"
@@ -536,7 +536,7 @@ export const Hero: React.FC = () => {
                     <button
                       type="submit"
                       disabled={isSubmitting || isCheckingEmail}
-                      className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-bearo-honey to-bearo-amber px-5 py-3 md:px-6 md:py-4 text-sm md:text-base font-semibold uppercase text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] whitespace-nowrap disabled:opacity-50 overflow-hidden"
+                      className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-bearo-honey to-bearo-amber px-5 py-3 md:px-6 md:py-4 text-sm md:text-base font-semibold uppercase text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] whitespace-nowrap disabled:opacity-50"
                     >
                       {isSubmitting || isCheckingEmail ? (
                         <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">

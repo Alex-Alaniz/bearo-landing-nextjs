@@ -317,11 +317,11 @@ export const Hero: React.FC = () => {
 
         {/* iPhone Mockup with Real iOS Auth Flow UI - Complete Redesign */}
         <div className="relative z-10 flex items-center justify-center mt-12 mb-8">
-          {/* Honey glow behind phone */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[600px] bg-gradient-to-b from-[#F97316]/20 via-[#FBBF24]/15 to-[#D97706]/10 rounded-full blur-[100px] animate-glow-pulse -z-10" />
+          {/* Honey glow behind phone - disabled on mobile for performance */}
+          <div className="hidden sm:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[600px] bg-gradient-to-b from-[#F97316]/20 via-[#FBBF24]/15 to-[#D97706]/10 rounded-full blur-[100px] animate-glow-pulse -z-10" />
           
-          <div className="relative animate-float">
-            <PhoneFrame className="shadow-[0_20px_60px_rgba(249,115,22,0.3)] w-[320px] h-[650px] sm:w-[360px] sm:h-[720px]">
+          <div className="relative sm:animate-float">
+            <PhoneFrame className="shadow-[0_10px_30px_rgba(249,115,22,0.2)] sm:shadow-[0_20px_60px_rgba(249,115,22,0.3)] w-[280px] h-[570px] sm:w-[360px] sm:h-[720px]">
               {/* iOS Welcome/Auth Screen UI - Real Design from iOS App */}
               <div className="flex flex-col h-full bg-[#0A0A0B] relative overflow-hidden">
                 {/* Top Spacer for status bar */}
@@ -724,7 +724,8 @@ export const Hero: React.FC = () => {
         </div>
       </main>
 
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[660px] w-[660px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/5 blur-[130px]" />
+      {/* Background glow - disabled on mobile for performance */}
+      <div className="hidden sm:block pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[660px] w-[660px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/5 blur-[130px]" />
     </section>
   );
 };

@@ -159,6 +159,40 @@
   [role="button"] {
     min-height: 44px;
   }
+
+  /* Disable GPU-intensive animations on mobile */
+  .animate-float,
+  .animate-float-slow,
+  .animate-float-delayed,
+  .animate-glow-pulse {
+    animation: none !important;
+  }
+
+  /* Disable blurs on mobile for performance */
+  [class*="blur-"] {
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  /* Prevent transform jank during scroll */
+  * {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  /* Fix input focus issues on mobile */
+  input:focus,
+  textarea:focus {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+  }
+
+  /* Simplify rainbow border animation on mobile */
+  .rainbow-border {
+    animation: none !important;
+    background: linear-gradient(90deg, #f97316, #a855f7) !important;
+    background-size: 100% 100% !important;
+  }
 }
 
 /* Touch manipulation for better mobile responsiveness */

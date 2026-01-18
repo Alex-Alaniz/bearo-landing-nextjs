@@ -164,16 +164,53 @@ export async function POST(req: NextRequest) {
       // Non-fatal - airdrop allocation insert failed
     }
 
-    // Trigger TestFlight invite for iOS users (fire-and-forget, non-blocking)
+    // Trigger TestFlight invite for iOS users (tracked, non-blocking to response)
     if (platform === 'ios' && isTestFlightConfigured()) {
-      addBetaTester(normalizedEmail).then(result => {
-        if (result.success) {
-          console.log(`📱 [TestFlight] Invite sent to ${normalizedEmail}${result.alreadyInvited ? ' (already invited)' : ''}`);
-        } else {
-          console.error(`📱 [TestFlight] Failed for ${normalizedEmail}:`, result.error);
+      // Fire off the invite but track the result in the database
+      addBetaTester(normalizedEmail).then(async (result) => {
+        // Track the invite attempt in metadata
+        const metadata: Record<string, unknown> = {
+          testflight_invited: result.success,
+          testflight_invited_at: new Date().toISOString(),
+          testflight_already_invited: result.alreadyInvited || false,
+        };
+
+        if (!result.success && result.error) {
+          metadata.testflight_error = result.error;
         }
-      }).catch(err => {
+
+        // Update the user's metadata with TestFlight status
+        try {
+          await supabase
+            .from('waitlist')
+            .update({ metadata })
+            .eq('email', normalizedEmail);
+
+          if (result.success) {
+            console.log(`📱 [TestFlight] Invite sent to ${normalizedEmail}${result.alreadyInvited ? ' (already invited)' : ''}`);
+          } else {
+            console.error(`📱 [TestFlight] Failed for ${normalizedEmail}:`, result.error);
+          }
+        } catch (updateErr) {
+          console.error(`📱 [TestFlight] Failed to update metadata for ${normalizedEmail}:`, updateErr);
+        }
+      }).catch(async (err) => {
         console.error(`📱 [TestFlight] Error for ${normalizedEmail}:`, err);
+        // Track the error in metadata
+        try {
+          await supabase
+            .from('waitlist')
+            .update({
+              metadata: {
+                testflight_invited: false,
+                testflight_invited_at: new Date().toISOString(),
+                testflight_error: err instanceof Error ? err.message : 'Unknown error',
+              }
+            })
+            .eq('email', normalizedEmail);
+        } catch {
+          // Ignore metadata update error
+        }
       });
     }
 

@@ -14,6 +14,16 @@ interface CryptoToken {
   image: string;
 }
 
+// CoinGecko API response type
+interface CoinGeckoToken {
+  id: string;
+  symbol: string;
+  name: string;
+  current_price: number;
+  price_change_percentage_24h: number | null;
+  image: string;
+}
+
 export const FeatureSection: React.FC<FeatureProps> = ({
   title,
   description,
@@ -81,7 +91,7 @@ export const FeatureSection: React.FC<FeatureProps> = ({
           
           const data = await response.json();
           
-          const formattedData: CryptoToken[] = data.map((coin: any) => ({
+          const formattedData: CryptoToken[] = (data as CoinGeckoToken[]).map((coin) => ({
             id: coin.id,
             symbol: coin.symbol.toUpperCase(),
             name: coin.name,

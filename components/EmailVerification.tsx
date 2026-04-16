@@ -93,8 +93,9 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({
       // Pass OTP to parent for backend verification
       onVerified(code);
       
-    } catch (err: any) {
-      setError(err.message || 'Invalid code. Please try again.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid code. Please try again.';
+      setError(message);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
       setIsVerifying(false);
@@ -107,15 +108,16 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({
     try {
       // Resend verification email via thirdweb API
       await initiateWaitlistAuth(email);
-      
+
       console.log('✅ Verification code resent to:', email);
       setResendCountdown(60);
       setError('');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Resend failed:', err);
-      setError(err.message || 'Failed to resend code. Please try again.');
+      const message = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
+      setError(message);
     }
   };
 

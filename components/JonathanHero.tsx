@@ -24,22 +24,6 @@ const ArrowUpRight: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const DollarSign: React.FC<{ className?: string }> = ({ className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M12 1v22" />
-    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
-  </svg>
-);
-
 export const JonathanHero: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -119,9 +103,10 @@ export const JonathanHero: React.FC = () => {
       console.log(`✅ ${email} verified and claimed ${claimedTier.name}!`, result);
       setIsSubmitted(true);
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error verifying:', error);
-      alert(error.message || 'Something went wrong. Please try again!');
+      const message = error instanceof Error ? error.message : 'Something went wrong. Please try again!';
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -327,7 +312,7 @@ export const JonathanHero: React.FC = () => {
               <svg className="w-5 h-5 text-bearo-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
               </svg>
-              <span className="text-bearo-green font-semibold">You're on the list! Check your email to verify.</span>
+              <span className="text-bearo-green font-semibold">You&apos;re on the list! Check your email to verify.</span>
             </div>
           )}
 

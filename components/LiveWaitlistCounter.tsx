@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { getThirdwebUserCount } from '../lib/waitlist';
 import { TierRoadmap } from './TierRoadmap';
 import { TierIcon } from './TierIcon';
@@ -14,7 +14,10 @@ export const LiveWaitlistCounter: React.FC = () => {
   const [showStats, setShowStats] = useState(false);
   const [showPerks, setShowPerks] = useState(false);
 
-  const getLocalCount = () => {
+  // Use ref to track previous count without triggering effect re-runs
+  const prevTotalRef = useRef<number>(0);
+
+  const getLocalCount = useCallback(() => {
     try {
       const waitlist = localStorage.getItem('bearo_waitlist');
       if (!waitlist) return 0;
@@ -23,39 +26,40 @@ export const LiveWaitlistCounter: React.FC = () => {
     } catch {
       return 0;
     }
-  };
+  }, []);
 
-  const updateCounts = async () => {
-    const prevTotal = totalCount;
-    
+  const updateCounts = useCallback(async () => {
     try {
       const tw = await getThirdwebUserCount();
       const local = getLocalCount();
       const newTotal = tw + local;
-      
+
       setThirdwebCount(tw);
       setLocalCount(local);
       setTotalCount(newTotal);
 
       // Trigger animation if count increased
-      if (newTotal > prevTotal) {
+      if (newTotal > prevTotalRef.current && prevTotalRef.current > 0) {
         setIsAnimating(true);
         setShowCelebration(true);
         setTimeout(() => setIsAnimating(false), 600);
         setTimeout(() => setShowCelebration(false), 2000);
       }
+      prevTotalRef.current = newTotal;
     } catch (error) {
       console.error('Error updating counts:', error);
     }
-  };
+  }, [getLocalCount]);
 
   useEffect(() => {
+    // Initial fetch on mount - this is a valid pattern for data fetching
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateCounts();
-    
-    // Update every 3 seconds
+
+    // Update every 3 seconds via subscription to external state
     const interval = setInterval(updateCounts, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [updateCounts]);
 
   // Tiered FOMO system with psychological triggers
   const getTierInfo = (count: number) => {
@@ -172,18 +176,27 @@ export const LiveWaitlistCounter: React.FC = () => {
       {/* Celebration confetti effect */}
       {showCelebration && (
         <div className="fixed bottom-6 right-6 pointer-events-none z-[100]">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 rounded-full animate-confetti"
-              style={{
-                left: '50%',
-                top: '50%',
-                background: ['#F97316', '#FBBF24', '#10B981', '#3B82F6'][i % 4],
-                animationDelay: `${i * 0.1}s`,
-              }}
-            />
-          ))}
+          {[...Array(20)].map((_, i) => {
+            // Deterministic pseudo-random values based on index
+            const angle = (i * 18) * (Math.PI / 180); // 18 degrees apart
+            const distance = 80 + (i % 5) * 20;
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+            return (
+              <div
+                key={i}
+                className="absolute w-2 h-2 rounded-full animate-confetti"
+                style={{
+                  left: '50%',
+                  top: '50%',
+                  background: ['#F97316', '#FBBF24', '#10B981', '#3B82F6'][i % 4],
+                  animationDelay: `${i * 0.05}s`,
+                  '--x': `${x}px`,
+                  '--y': `${y}px`,
+                } as React.CSSProperties}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -522,8 +535,6 @@ export const LiveWaitlistCounter: React.FC = () => {
         }
 
         .animate-confetti {
-          --x: calc(${Math.random() * 200 - 100}px);
-          --y: calc(${Math.random() * 200 - 100}px);
           animation: confetti 1s ease-out forwards;
         }
       `}</style>

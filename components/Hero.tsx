@@ -26,22 +26,6 @@ const ArrowUpRight: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const DollarSign: React.FC<{ className?: string }> = ({ className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M12 1v22" />
-    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
-  </svg>
-);
-
 export const Hero: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -216,9 +200,10 @@ export const Hero: React.FC = () => {
       // Show wallet input (required before showing code)
       setShowWalletInput(true);
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error verifying:', error);
-      alert(error.message || 'Something went wrong. Please try again!');
+      const message = error instanceof Error ? error.message : 'Something went wrong. Please try again!';
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -267,9 +252,10 @@ export const Hero: React.FC = () => {
         setReferral({ code: existingUser.referralCode, link: existingUser.referralLink });
       }
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving wallet:', error);
-      alert(error.message || 'Failed to save wallet. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to save wallet. Please try again.';
+      alert(message);
     } finally {
       setIsSavingWallet(false);
     }
@@ -640,8 +626,9 @@ export const Hero: React.FC = () => {
                               } else {
                                 alert(result.message);
                               }
-                            } catch (error: any) {
-                              alert(error.message || 'Failed to link referral code');
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to link referral code';
+                              alert(message);
                             } finally {
                               setIsLinkingReferral(false);
                             }

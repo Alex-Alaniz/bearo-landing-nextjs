@@ -138,7 +138,7 @@ const CashAppPage = () => {
           rightContent={
             <>
               <blockquote className="text-[24px] leading-[32px] tracking-[-0.8px] mb-8">
-                "Cash App makes it so easy to manage everything—I use it for saving, splitting bills, and getting paid. It’s all-in-one."
+                &quot;Cash App makes it so easy to manage everything—I use it for saving, splitting bills, and getting paid. It&apos;s all-in-one.&quot;
               </blockquote>
               <a href="/reviews" className="flex items-center justify-center w-[164px] h-[51px] border border-white rounded-[100px] hover:bg-white hover:text-black transition-colors duration-300">
                 Read reviews

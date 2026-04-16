@@ -1,5 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect } from 'react';
+import Link from 'next/link';
 import './CashAppInvest.css';
 import { useCashAppAnimations } from '../hooks/useCashAppAnimations';
 import {
@@ -49,14 +50,6 @@ const CashAppInvest = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [timelineRef, isPausedByScroll]);
-
-  // Scroll down handler
-  const handleScrollDown = () => {
-    window.scrollTo({
-      top: window.innerHeight,
-      behavior: 'smooth'
-    });
-  };
 
   // Scroll to waitlist signup section
   const handleScrollToWaitlist = () => {
@@ -108,21 +101,23 @@ const CashAppInvest = () => {
         if (signInLink) signInLink.style.color = 'white';
         if (myFirstLink) myFirstLink.style.color = 'white';
         if (appLinks) {
-            appLinks.querySelectorAll('a').forEach((link: any) => {
-                link.style.color = 'white';
-                link.style.borderColor = 'white';
-                link.querySelector('svg').style.color = 'white';
+            appLinks.querySelectorAll('a').forEach((link) => {
+                const anchor = link as HTMLAnchorElement;
+                anchor.style.color = 'white';
+                anchor.style.borderColor = 'white';
+                const svg = anchor.querySelector('svg') as SVGElement | null;
+                if (svg) svg.style.color = 'white';
             });
         }
-        if (socialLinks) socialLinks.querySelectorAll('a').forEach((link: any) => link.style.color = 'white');
-        if (disclosures) disclosures.forEach((link: any) => link.style.color = 'white');
+        if (socialLinks) socialLinks.querySelectorAll('a').forEach((link) => (link as HTMLAnchorElement).style.color = 'white');
+        if (disclosures) disclosures.forEach((link) => (link as HTMLElement).style.color = 'white');
     } else {
         if (modal) modal.style.visibility = 'hidden';
         if (menuLink) menuLink.style.transform = '';
 
         // When closing, restart the timeline from roughly where it was or reset visible sections
         const sections = containerRef.current.querySelectorAll('section');
-        sections.forEach((s: any) => s.style.visibility = 'hidden');
+        sections.forEach((s) => (s as HTMLElement).style.visibility = 'hidden');
         if (timelineRef.current) timelineRef.current.restart();
     }
   };
@@ -134,9 +129,9 @@ const CashAppInvest = () => {
         <main>
           <header data-grid>
             <div data-logos>
-              <a href="/" className="shrink-0">
+              <Link href="/" className="shrink-0">
                 <img src="/images/BearoApp.png" alt="Bearo" className="w-24 h-24" />
-              </a>
+              </Link>
             </div>
 
             {/* Empty placeholder for grid alignment */}
@@ -235,12 +230,12 @@ const CashAppInvest = () => {
 
           <nav data-modal="menu">
             <ul>
-              <li><a href="/">Sign In</a></li>
-              <li><a href="/">Legal</a></li>
-              <li><a href="/">Security</a></li>
-              <li><a href="/">Careers</a></li>
-              <li><a href="/">Press</a></li>
-              <li><a href="/">Support</a></li>
+              <li><Link href="/">Sign In</Link></li>
+              <li><Link href="/">Legal</Link></li>
+              <li><Link href="/">Security</Link></li>
+              <li><Link href="/">Careers</Link></li>
+              <li><Link href="/">Press</Link></li>
+              <li><Link href="/">Support</Link></li>
             </ul>
           </nav>
         </main>

@@ -1,7 +1,15 @@
 // Frontend API client for thirdweb authentication + Supabase database sync
 
-import { supabase, WaitlistSyncEntry } from './supabase';
+import { supabase } from './supabase';
 import type { Platform } from './deviceDetection';
+
+// Auth result type from thirdweb
+interface ThirdwebAuthResult {
+  token?: string;
+  userId?: string;
+  walletAddress?: string;
+  isNewUser?: boolean;
+}
 
 // Use correct thirdweb API base URL
 const THIRDWEB_API = 'https://api.thirdweb.com/v1';
@@ -54,7 +62,7 @@ function generateReferralCode(): string {
   return result;
 }
 
-function storeLocalFallback(authResult: any, email: string, tierNumber: number, tierName: string, referralCode: string, referralLink: string) {
+function storeLocalFallback(authResult: ThirdwebAuthResult, email: string, tierNumber: number, tierName: string, referralCode: string, referralLink: string) {
   // Store auth session in localStorage (fallback)
   localStorage.setItem('bearo_auth', JSON.stringify({
     token: authResult.token,
@@ -145,7 +153,7 @@ export async function initiateWaitlistAuth(email: string): Promise<InitiateRespo
       success: true,
       message: 'Verification email sent'
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Thirdweb auth error:', error);
     throw error;
   }
@@ -194,7 +202,7 @@ export async function verifyAndClaimTier(
     }
 
     // Try 'code' parameter first (most common)
-    let completeBody: any = {
+    let completeBody: Record<string, string> = {
       method: 'email',
       email,
       code: otp,
@@ -336,11 +344,12 @@ export async function verifyAndClaimTier(
         referralCode,
         referralLink,
       };
-    } catch (signupError: any) {
+    } catch (signupError) {
       console.error('❌ Signup API error:', signupError);
-      throw new Error(signupError.message || 'Unable to complete registration. Please try again.');
+      const message = signupError instanceof Error ? signupError.message : 'Unable to complete registration. Please try again.';
+      throw new Error(message);
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Verification error:', error);
     throw error;
   }
@@ -678,9 +687,10 @@ export async function linkReferralRetroactively(
       referrerCode: normalizedCode,
       airdropSent,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[linkReferral] Error:', error);
-    return { success: false, message: error.message || 'An error occurred. Please try again.' };
+    const message = error instanceof Error ? error.message : 'An error occurred. Please try again.';
+    return { success: false, message };
   }
 }
 
@@ -755,9 +765,10 @@ export async function saveWalletAddress(
       success: true,
       message: 'Wallet address saved successfully!',
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[saveWalletAddress] Error:', error);
-    return { success: false, message: error.message || 'An error occurred. Please try again.' };
+    const message = error instanceof Error ? error.message : 'An error occurred. Please try again.';
+    return { success: false, message };
   }
 }
 

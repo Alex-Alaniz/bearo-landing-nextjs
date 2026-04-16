@@ -73,7 +73,7 @@ async function getTierAvailability(): Promise<Record<number, { maxSpots: number;
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({} as any));
+  const body = await req.json().catch(() => ({} as Record<string, unknown>));
   const action = body?.action as Action | undefined;
 
   if (!action) {

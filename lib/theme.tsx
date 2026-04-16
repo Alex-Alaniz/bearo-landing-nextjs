@@ -14,12 +14,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Hydration-safe initialization - must run after mount to read localStorage
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const stored = localStorage.getItem('bearo-theme') as Theme | null;
     if (stored && (stored === 'light' || stored === 'dark')) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThemeState(stored);
     } else {
       // Default to dark
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThemeState('dark');
     }
   }, []);

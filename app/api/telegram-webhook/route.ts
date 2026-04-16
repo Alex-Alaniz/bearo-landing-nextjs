@@ -45,8 +45,9 @@ async function sendTokens(to: string, amount: string): Promise<{success: boolean
     });
     if (!res.ok) return { success: false, error: await res.text() };
     return { success: true };
-  } catch (e: any) {
-    return { success: false, error: e.message };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+    return { success: false, error: message };
   }
 }
 

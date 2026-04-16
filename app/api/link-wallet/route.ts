@@ -110,8 +110,9 @@ export async function POST(req: NextRequest) {
       message: 'Wallet linked successfully',
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Link wallet API error:', error);
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

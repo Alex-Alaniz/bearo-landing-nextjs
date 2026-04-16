@@ -300,7 +300,8 @@ export const Hero: React.FC = () => {
                     src="/animations/Welcome.json"
                     loop
                     playOnMobile
-                    className="w-[65%] h-24"
+                    className="w-[85%] aspect-[400/90]"
+                    viewBox="-200 -50 400 90"
                     fallback={
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-white/40 text-xs">Welcome</span>

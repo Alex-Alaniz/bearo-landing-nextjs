@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Lottie from 'lottie-react';
+import { LazyLottie } from './LazyLottie';
 
 // Chain logos using downloaded images
 const ChainLogos = {
@@ -113,23 +113,8 @@ export const StablecoinExplorer: React.FC = () => {
   const [showNetworks, setShowNetworks] = useState(false);
   const [showLearnMore, setShowLearnMore] = useState(false);
   const [activeNetwork, setActiveNetwork] = useState(NETWORKS[0]);
-  const [beeAnimation, setBeeAnimation] = useState<any>(null);
-  const [cryptoAnimation, setCryptoAnimation] = useState<any>(null);
 
-  // Load animations
-  useEffect(() => {
-    // Load BEE-lieve animation for HONEY icon
-    fetch('/animations/BEE-lieve.json')
-      .then(res => res.json())
-      .then(data => setBeeAnimation(data))
-      .catch(() => console.log('BEE-lieve animation loading...'));
-
-    // Load crypto animation overlay
-    fetch('/animations/Crypto-animation.json')
-      .then(res => res.json())
-      .then(data => setCryptoAnimation(data))
-      .catch(() => console.log('Crypto animation loading...'));
-  }, []);
+  // Animations are now lazy-loaded via LazyLottie — no eager fetch needed.
 
   return (
     <>
@@ -144,16 +129,12 @@ export const StablecoinExplorer: React.FC = () => {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
         >
-          {/* Crypto Animation Overlay - behind everything */}
-          {cryptoAnimation && (
-            <div className="absolute -inset-8 pointer-events-none opacity-60">
-              <Lottie
-                animationData={cryptoAnimation}
-                loop={true}
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
-          )}
+          {/* Crypto Animation Overlay - behind everything (desktop only) */}
+          <LazyLottie
+            src="/animations/Crypto-animation.json"
+            loop
+            className="absolute -inset-8 pointer-events-none opacity-60"
+          />
           
           {/* Glow effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-bearo-honey to-bearo-amber rounded-full blur-xl opacity-50 group-hover:opacity-80 transition-opacity" />
@@ -161,15 +142,12 @@ export const StablecoinExplorer: React.FC = () => {
           {/* Coin */}
           <div className="relative">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-bearo-honey via-yellow-400 to-bearo-amber flex items-center justify-center shadow-2xl border-4 border-yellow-300/50 overflow-hidden">
-              {beeAnimation ? (
-                <Lottie
-                  animationData={beeAnimation}
-                  loop={true}
-                  style={{ width: '120%', height: '120%' }}
-                />
-              ) : (
-                <span className="text-3xl">🍯</span>
-              )}
+              <LazyLottie
+                src="/animations/BEE-lieve.json"
+                loop
+                style={{ width: '120%', height: '120%' }}
+                fallback={<span className="text-3xl">🍯</span>}
+              />
             </div>
             
             {/* Orbiting stablecoin logos */}
@@ -236,15 +214,12 @@ export const StablecoinExplorer: React.FC = () => {
                         transition={{ repeat: Infinity, duration: 2 }}
                         className="w-8 h-8"
                       >
-                        {beeAnimation ? (
-                          <Lottie
-                            animationData={beeAnimation}
-                            loop={true}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        ) : (
-                          <span className="text-2xl">🍯</span>
-                        )}
+                        <LazyLottie
+                          src="/animations/BEE-lieve.json"
+                          loop
+                          className="w-full h-full"
+                          fallback={<span className="text-2xl">🍯</span>}
+                        />
                       </motion.div>
                       <div>
                         <div className="text-white font-bold text-sm">What is HONEY?</div>
@@ -273,15 +248,12 @@ export const StablecoinExplorer: React.FC = () => {
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-bearo-honey to-bearo-amber flex items-center justify-center shadow-lg overflow-hidden">
-                        {beeAnimation ? (
-                          <Lottie
-                            animationData={beeAnimation}
-                            loop={true}
-                            style={{ width: '130%', height: '130%' }}
-                          />
-                        ) : (
-                          <span className="text-2xl">🍯</span>
-                        )}
+                        <LazyLottie
+                          src="/animations/BEE-lieve.json"
+                          loop
+                          style={{ width: '130%', height: '130%' }}
+                          fallback={<span className="text-2xl">🍯</span>}
+                        />
                       </div>
                       <div>
                         <div className="text-white font-bold">Your Money = HONEY</div>

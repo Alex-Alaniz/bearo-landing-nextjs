@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Lottie from 'lottie-react';
+import { LazyLottie } from './LazyLottie';
 import { getAuthSession, getUserTier, getTierBadge, logout } from '../lib/auth';
 import { TierSelector } from './TierSelector';
 import { EmailVerification } from './EmailVerification';
@@ -101,19 +101,12 @@ export const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [authSession, setAuthSession] = useState(getAuthSession());
   const [userTier, setUserTier] = useState(getUserTier());
-  const [beeAnimation, setBeeAnimation] = useState<any>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
-
-    // Load BEE-lieve animation
-    fetch('/animations/BEE-lieve.json')
-      .then(res => res.json())
-      .then(data => setBeeAnimation(data))
-      .catch(() => console.log('BEE-lieve animation loading...'));
 
     // Check for auth updates every second
     const authInterval = setInterval(() => {
@@ -179,17 +172,12 @@ export const Navbar: React.FC = () => {
                 <div className="flex items-center">
                   <div className="relative rounded-full rainbow-border p-[2px]">
                     <div className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r ${getTierBadge(userTier.tierNumber).color} text-white text-[10px] sm:text-xs font-bold shadow-lg`}>
-                      {beeAnimation ? (
-                        <div className="w-4 h-4 sm:w-5 sm:h-5">
-                          <Lottie
-                            animationData={beeAnimation}
-                            loop={true}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        </div>
-                      ) : (
-                        <TierIcon tierNumber={userTier.tierNumber} size={18} />
-                      )}
+                      <LazyLottie
+                        src="/animations/BEE-lieve.json"
+                        loop
+                        className="w-4 h-4 sm:w-5 sm:h-5"
+                        fallback={<TierIcon tierNumber={userTier.tierNumber} size={18} />}
+                      />
                       <span className="hidden sm:inline">{userTier.tierName}</span>
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Lottie from 'lottie-react';
+import { LazyLottie } from './LazyLottie';
 import { PhoneFrame } from './PhoneFrame';
 import { TierSelector } from './TierSelector';
 import { EmailVerification } from './EmailVerification';
@@ -7,9 +7,6 @@ import { isOnWaitlist } from '../lib/waitlist';
 import { initiateWaitlistAuth, verifyAndClaimTier, checkExistingUser, ExistingUserInfo, linkReferralRetroactively, saveWalletAddress } from '../lib/api';
 import { detectPlatform } from '../lib/deviceDetection';
 import { WalletInput } from './WalletInput';
-
-// Animation data will be loaded dynamically
-type AnimationData = Record<string, unknown>;
 
 const ArrowUpRight: React.FC<{ className?: string }> = ({ className }) => (
   <svg
@@ -36,8 +33,6 @@ export const Hero: React.FC = () => {
   const [referral, setReferral] = useState<{ code: string; link: string } | null>(null);
   const [existingUser, setExistingUser] = useState<ExistingUserInfo | null>(null);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  const [welcomeAnimation, setWelcomeAnimation] = useState<AnimationData | null>(null);
-  const [moneyAnimation, setMoneyAnimation] = useState<AnimationData | null>(null);
   // Retroactive referral linking state
   const [showLinkReferral, setShowLinkReferral] = useState(false);
   const [linkReferralCode, setLinkReferralCode] = useState('');
@@ -61,18 +56,7 @@ export const Hero: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    // Load animations from iOS app
-    fetch('/animations/Welcome.json')
-      .then(res => res.json())
-      .then(data => setWelcomeAnimation(data))
-      .catch(() => console.log('Welcome animation loading...'));
-
-    fetch('/animations/Money.json')
-      .then(res => res.json())
-      .then(data => setMoneyAnimation(data))
-      .catch(() => console.log('Money animation loading...'));
-  }, []);
+  // Animations are now lazy-loaded via LazyLottie — no eager fetch needed.
 
   const handleCTA = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,16 +274,13 @@ export const Hero: React.FC = () => {
           />
         </div>
 
-        {/* Money Animation - below logo like iOS app */}
-        <div className="animate-fade-up stagger-3 mb-2 w-28 h-28 z-10">
-          {moneyAnimation && (
-            <Lottie
-              animationData={moneyAnimation}
-              loop={true}
-              style={{ width: '100%', height: '100%' }}
-            />
-          )}
-        </div>
+        {/* Money Animation - below logo like iOS app (desktop only) */}
+        <LazyLottie
+          src="/animations/Money.json"
+          loop
+          className="animate-fade-up stagger-3 mb-2 w-28 h-28 z-10"
+          fallback={null}
+        />
 
         {/* iPhone Mockup with Real iOS Auth Flow UI - Complete Redesign */}
         <div className="relative z-10 flex items-center justify-center mt-12 mb-8">
@@ -313,21 +294,19 @@ export const Hero: React.FC = () => {
                 {/* Top Spacer for status bar */}
                 <div className="h-12" />
                 
-                {/* Welcome Animation - Integrated naturally at top */}
+                {/* Welcome Animation - plays on mobile too since it's the hero */}
                 <div className="flex justify-center mb-4 px-4">
-                  <div className="w-[65%] h-24">
-                    {welcomeAnimation ? (
-                      <Lottie
-                        animationData={welcomeAnimation}
-                        loop={true}
-                        style={{ width: '100%', height: '100%' }}
-                      />
-                    ) : (
+                  <LazyLottie
+                    src="/animations/Welcome.json"
+                    loop
+                    playOnMobile
+                    className="w-[65%] h-24"
+                    fallback={
                       <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-white/40 text-xs">Loading...</span>
+                        <span className="text-white/40 text-xs">Welcome</span>
                       </div>
-                    )}
-                  </div>
+                    }
+                  />
                 </div>
 
                 {/* BearoApp Logo - Centered */}
@@ -339,16 +318,12 @@ export const Hero: React.FC = () => {
                   />
                 </div>
 
-                {/* Money Animation - Floating naturally on the right */}
-                <div className="absolute top-[32%] right-[8%] w-20 h-20 z-10">
-                  {moneyAnimation && (
-                    <Lottie
-                      animationData={moneyAnimation}
-                      loop={true}
-                      style={{ width: '100%', height: '100%' }}
-                    />
-                  )}
-                </div>
+                {/* Money Animation - desktop only, decorative */}
+                <LazyLottie
+                  src="/animations/Money.json"
+                  loop
+                  className="absolute top-[32%] right-[8%] w-20 h-20 z-10"
+                />
 
                 {/* Tagline */}
                 <p className="text-center text-white/70 text-xs font-medium mb-10 px-4">

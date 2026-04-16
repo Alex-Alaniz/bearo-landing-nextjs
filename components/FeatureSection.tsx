@@ -1,9 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import Lottie from 'lottie-react';
+import { LazyLottie } from './LazyLottie';
 import { PhoneFrame } from './PhoneFrame';
 import { FeatureProps } from '../types';
 
-type AnimationData = Record<string, unknown>;
 
 interface CryptoToken {
   id: string;
@@ -37,17 +36,7 @@ export const FeatureSection: React.FC<FeatureProps> = ({
   const [scrollProgress, setScrollProgress] = useState(0);
   const [cryptoData, setCryptoData] = useState<CryptoToken[]>([]);
   const [loadingCrypto, setLoadingCrypto] = useState(true);
-  const [bitcoinTouchAnimation, setBitcoinTouchAnimation] = useState<AnimationData | null>(null);
-
-  // Load BitcoinTouch animation for payments section
-  useEffect(() => {
-    if (imageType === 'payments') {
-      fetch('/animations/BitcoinTouch.json')
-        .then(res => res.json())
-        .then(data => setBitcoinTouchAnimation(data))
-        .catch(() => console.log('BitcoinTouch animation loading...'));
-    }
-  }, [imageType]);
+  // BitcoinTouch animation is 839KB — lazy-loaded via LazyLottie only on desktop when scrolled into view.
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -154,21 +143,17 @@ export const FeatureSection: React.FC<FeatureProps> = ({
     if (imageType === 'payments') {
       return (
         <div className="flex flex-col h-full bg-gradient-to-b from-[#0a0a0a] to-[#0f0f0f] scale-[0.9] origin-top">
-          {/* BitcoinTouch Animation */}
-          {bitcoinTouchAnimation && (
-            <div className="flex justify-center pt-4 pb-2">
-              <div className="w-20 h-20">
-                <Lottie
-                  animationData={bitcoinTouchAnimation}
-                  loop={true}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
-            </div>
-          )}
+          {/* BitcoinTouch Animation — desktop only, lazy-loaded */}
+          <div className="flex justify-center pt-4 pb-2">
+            <LazyLottie
+              src="/animations/BitcoinTouch.json"
+              loop
+              className="w-20 h-20"
+            />
+          </div>
 
           {/* Recipient - Compact */}
-          <div className={`${bitcoinTouchAnimation ? 'pt-2' : 'pt-5'} text-center`}>
+          <div className="pt-2 text-center">
             <div className="w-14 h-14 mx-auto mb-2 rounded-xl bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/20">
               <span className="text-xl font-display font-bold text-white">S</span>
             </div>

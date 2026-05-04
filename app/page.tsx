@@ -10,6 +10,7 @@ import {
 import { BearoContent } from '../components/BearoContent';
 import { LiveWaitlistCounter } from '../components/LiveWaitlistCounter';
 import { StablecoinExplorer } from '../components/StablecoinExplorer';
+import { IOS_TESTFLIGHT_URL } from '../lib/downloadLinks';
 
 const CashAppInvest = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -208,13 +209,13 @@ const CashAppInvest = () => {
               <h3>Send money instantly<br/>with crypto rails</h3>
             </a>
             <div data-apps>
-              <a href="">
+              <a href={IOS_TESTFLIGHT_URL} target="_blank" rel="noopener noreferrer">
                 <AppStoreIcon />
-                <span>App Store</span>
+                <span>TestFlight</span>
               </a>
-              <a href="">
+              <a href="#waitlist-signup" onClick={(e) => { e.preventDefault(); handleScrollToWaitlist(); }}>
                 <GooglePlayIcon />
-                <span>Google Play</span>
+                <span>Android Soon</span>
               </a>
             </div>
             <div data-social>

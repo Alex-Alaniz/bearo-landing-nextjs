@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ReferralClient } from "./referral-client";
+import { ANDROID_WAITLIST_LABEL, IOS_TESTFLIGHT_URL } from "../../../lib/downloadLinks";
 
 /**
  * ANTI-FARMING NOTES FOR $BEARCO AIRDROP (server-side enforcement):
@@ -122,7 +123,7 @@ export default async function ReferPage({ params }: ReferPageProps) {
         <div className="w-full max-w-sm space-y-3">
           {/* Primary: App Store / TestFlight */}
           <a
-            href="https://testflight.apple.com/join/bearified"
+            href={IOS_TESTFLIGHT_URL}
             className="block w-full text-center py-4 px-6 rounded-2xl font-semibold text-lg rainbow-border text-white transition-transform active:scale-[0.98]"
             style={{
               background:
@@ -134,7 +135,7 @@ export default async function ReferPage({ params }: ReferPageProps) {
 
           {/* Secondary: Google Play (coming soon) */}
           <div className="block w-full text-center py-4 px-6 rounded-2xl font-medium text-gray-500 bg-white/5 border border-white/10 cursor-default">
-            Android - Coming Soon
+            {ANDROID_WAITLIST_LABEL}
           </div>
         </div>
 

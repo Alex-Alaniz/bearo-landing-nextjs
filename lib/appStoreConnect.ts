@@ -18,12 +18,24 @@ interface AppStoreConnectConfig {
   appId: string;
 }
 
+interface BetaGroupResource {
+  id: string;
+  attributes?: {
+    isInternalGroup?: boolean;
+  };
+}
+
+function cleanScalarEnv(value: string | undefined): string | undefined {
+  return value?.replace(/\\n/g, '').trim();
+}
+
 function getConfig(): AppStoreConnectConfig {
-  // Trim all env vars to remove accidental newlines
-  const keyId = process.env.APP_STORE_CONNECT_KEY_ID?.trim();
-  const issuerId = process.env.APP_STORE_CONNECT_ISSUER_ID?.trim();
+  // Trim whitespace and escaped newlines. Vercel env values can accidentally
+  // contain a literal "\n", which .trim() does not remove.
+  const keyId = cleanScalarEnv(process.env.APP_STORE_CONNECT_KEY_ID);
+  const issuerId = cleanScalarEnv(process.env.APP_STORE_CONNECT_ISSUER_ID);
   const privateKeyBase64 = process.env.APP_STORE_CONNECT_PRIVATE_KEY?.trim();
-  const appId = process.env.APP_STORE_CONNECT_APP_ID?.trim();
+  const appId = cleanScalarEnv(process.env.APP_STORE_CONNECT_APP_ID);
 
   if (!keyId || !issuerId || !privateKeyBase64 || !appId) {
     throw new Error('Missing App Store Connect configuration. Required: APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_APP_ID');
@@ -106,7 +118,9 @@ async function getBetaGroupId(token: string, appId: string): Promise<string> {
   }
 
   // Find the first external (non-internal) beta group, or use the first one if all are internal
-  const externalGroup = data.data.find((group: any) => !group.attributes?.isInternalGroup);
+  const externalGroup = (data.data as BetaGroupResource[]).find(
+    (group) => !group.attributes?.isInternalGroup
+  );
   const groupToUse = externalGroup || data.data[0];
 
   return groupToUse.id;
@@ -212,9 +226,9 @@ export async function addBetaTester(
  */
 export function isConfigured(): boolean {
   return !!(
-    process.env.APP_STORE_CONNECT_KEY_ID &&
-    process.env.APP_STORE_CONNECT_ISSUER_ID &&
+    cleanScalarEnv(process.env.APP_STORE_CONNECT_KEY_ID) &&
+    cleanScalarEnv(process.env.APP_STORE_CONNECT_ISSUER_ID) &&
     process.env.APP_STORE_CONNECT_PRIVATE_KEY &&
-    process.env.APP_STORE_CONNECT_APP_ID
+    cleanScalarEnv(process.env.APP_STORE_CONNECT_APP_ID)
   );
 }

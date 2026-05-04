@@ -42,15 +42,20 @@ async function processInvites(
     try {
       const result = await addBetaTester(user.email);
 
-      // Mark as batch-invited in metadata
+      // Track the batch attempt without marking failures as invited.
       const currentMetadata = user.metadata || {};
       await supabase
         .from('waitlist')
         .update({
           metadata: {
             ...currentMetadata,
-            testflight_batch_invited: true,
-            testflight_batch_invited_at: new Date().toISOString(),
+            testflight_invited: result.success,
+            testflight_invited_at: new Date().toISOString(),
+            testflight_already_invited: result.alreadyInvited || false,
+            testflight_batch_attempted: true,
+            testflight_batch_attempted_at: new Date().toISOString(),
+            ...(result.success ? { testflight_batch_invited: true } : {}),
+            ...(result.error ? { testflight_error: result.error } : {}),
           }
         })
         .eq('email', user.email);
@@ -144,10 +149,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Filter out users who have already been batch-invited
+    // Only invite verified iOS users who have not already been successfully invited.
     const usersToInvite = (allUsers || []).filter(u => {
       const metadata = u.metadata as Record<string, unknown> | null;
-      return !metadata?.testflight_batch_invited;
+      return u.platform === 'ios' && metadata?.testflight_invited !== true;
     }).slice(0, limit);
 
     if (usersToInvite.length === 0) {

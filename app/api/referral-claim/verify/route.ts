@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   completeThirdwebEmailOtp,
+  enforceOtpVerifyRateLimit,
+  getClientIp,
+  getSupabaseServiceClient,
   normalizeEmail,
   normalizePlatform,
   normalizeReferralCode,
@@ -14,6 +17,7 @@ export async function POST(req: NextRequest) {
     const code = normalizeReferralCode(body.code);
     const platform = normalizePlatform(body.platform);
     const otp = typeof body.otp === "string" ? body.otp.trim() : "";
+    const ip = getClientIp(req);
 
     if (!email) {
       return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
@@ -23,6 +27,15 @@ export async function POST(req: NextRequest) {
     }
     if (!/^\d{6,8}$/.test(otp)) {
       return NextResponse.json({ error: "Enter the verification code from your email." }, { status: 400 });
+    }
+
+    const supabase = getSupabaseServiceClient();
+    const limit = await enforceOtpVerifyRateLimit(supabase, { email, ip });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Too many verification attempts. Please try again later.", reason: limit.reason },
+        { status: 429 }
+      );
     }
 
     const thirdweb = await completeThirdwebEmailOtp(email, otp, body.challenge);

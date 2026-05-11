@@ -13,6 +13,8 @@ const THIRDWEB_API = "https://api.thirdweb.com/v1";
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const EMAIL_OTP_LIMIT = 3;
 const IP_OTP_LIMIT = 10;
+const EMAIL_OTP_VERIFY_LIMIT = 8;
+const IP_OTP_VERIFY_LIMIT = 20;
 const INVITE_RESEND_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 type WaitlistMetadata = Record<string, unknown>;
@@ -98,10 +100,36 @@ export async function enforceOtpRateLimit(
   supabase: SupabaseClient,
   params: { email: string; ip: string }
 ): Promise<{ allowed: true } | { allowed: false; reason: string }> {
+  return enforceReferralClaimRateLimit(supabase, {
+    email: params.email,
+    ip: params.ip,
+    action: "otp_send",
+    emailLimit: EMAIL_OTP_LIMIT,
+    ipLimit: IP_OTP_LIMIT,
+  });
+}
+
+export async function enforceOtpVerifyRateLimit(
+  supabase: SupabaseClient,
+  params: { email: string; ip: string }
+): Promise<{ allowed: true } | { allowed: false; reason: string }> {
+  return enforceReferralClaimRateLimit(supabase, {
+    email: params.email,
+    ip: params.ip,
+    action: "otp_verify",
+    emailLimit: EMAIL_OTP_VERIFY_LIMIT,
+    ipLimit: IP_OTP_VERIFY_LIMIT,
+  });
+}
+
+async function enforceReferralClaimRateLimit(
+  supabase: SupabaseClient,
+  params: { email: string; ip: string; action: string; emailLimit: number; ipLimit: number }
+): Promise<{ allowed: true } | { allowed: false; reason: string }> {
   const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
   const checks = [
-    { scope: "email", id: params.email, max: EMAIL_OTP_LIMIT },
-    { scope: "ip", id: params.ip, max: IP_OTP_LIMIT },
+    { scope: "email", id: params.email, max: params.emailLimit },
+    { scope: "ip", id: params.ip, max: params.ipLimit },
   ] as const;
 
   for (const check of checks) {
@@ -111,7 +139,7 @@ export async function enforceOtpRateLimit(
       .select("*", { count: "exact", head: true })
       .eq("scope", check.scope)
       .eq("identifier_hash", identifierHash)
-      .eq("action", "otp_send")
+      .eq("action", params.action)
       .gte("created_at", since);
 
     if (error) {
@@ -127,7 +155,7 @@ export async function enforceOtpRateLimit(
     const { error } = await supabase.from("referral_claim_rate_events").insert({
       scope: check.scope,
       identifier_hash: identifierHash,
-      action: "otp_send",
+      action: params.action,
       metadata: { windowSeconds: RATE_LIMIT_WINDOW_MS / 1000 },
     });
     if (error) {
@@ -324,7 +352,8 @@ async function ensureWaitlistRow(
       platform: params.platform,
       metadata: nextMetadata,
     };
-    if (!params.previousRow.referred_by) {
+    const existingOwnCode = normalizeReferralCode(params.previousRow.referral_code);
+    if (!params.previousRow.referred_by && existingOwnCode !== params.effectiveReferrerCode) {
       updates.referred_by = params.effectiveReferrerCode;
     }
 
@@ -456,9 +485,9 @@ async function maybeSendInvite(
     if (!isTestFlightConfigured()) {
       metadata.testflight_invited = false;
       metadata.testflight_skipped_reason = "not_configured";
-      await updateClaimInviteState(supabase, params.claim.id, metadata, (params.claim.invite_resend_count ?? 0) + 1);
+      await updateClaimMetadata(supabase, params.claim.id, metadata);
       return {
-        attempted: true,
+        attempted: false,
         skippedReason: "not_configured",
         success: false,
         ctaUrl: IOS_TESTFLIGHT_URL,

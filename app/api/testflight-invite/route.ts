@@ -2,17 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addBetaTester, isConfigured } from '../../../lib/appStoreConnect';
 import { createClient } from '@supabase/supabase-js';
 import type { Platform } from '../../../lib/deviceDetection';
+import { normalizeEmail } from '../../../lib/referralClaim';
 
 // Use service role key - only available on server
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEX_SUPABASE_SERVICE_KEY || '';
 
   if (!url || !serviceKey) {
-    return null;
+    throw new Error('Supabase not configured');
   }
 
   return createClient(url, serviceKey);
+}
+
+function hasAdminAccess(req: NextRequest): boolean {
+  const secret = process.env.TESTFLIGHT_ADMIN_SECRET || process.env.ADMIN_API_SECRET || '';
+  if (!secret) return false;
+
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
+  const headerSecret = req.headers.get('x-admin-secret')?.trim();
+  return bearer === secret || headerSecret === secret;
 }
 
 const VALID_PLATFORMS = new Set<Platform>(['ios', 'android', 'desktop', 'unknown']);
@@ -59,6 +69,14 @@ function mergeInviteMetadata(
  */
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.TESTFLIGHT_ADMIN_SECRET && !process.env.ADMIN_API_SECRET) {
+      return NextResponse.json({ error: 'Invite admin endpoint not configured' }, { status: 503 });
+    }
+
+    if (!hasAdminAccess(req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Check if TestFlight integration is configured
     if (!isConfigured()) {
       console.warn('⚠️ TestFlight not configured - skipping invite');
@@ -70,88 +88,64 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email } = body;
-
-    if (!email) {
+    const normalizedEmail = normalizeEmail(body.email);
+    if (!normalizedEmail) {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: 'Enter a valid email.' },
         { status: 400 }
       );
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-
     // Verify user is in waitlist and is iOS
     const supabase = getSupabase();
-    if (supabase) {
-      const { data: user } = await supabase
-        .from('waitlist')
-        .select('email, platform, verified, metadata')
-        .eq('email', normalizedEmail)
-        .maybeSingle<{
-          email: string;
-          platform: Platform | null;
-          verified: boolean;
-          metadata: Record<string, unknown> | null;
-        }>();
+    const { data: user } = await supabase
+      .from('waitlist')
+      .select('email, platform, verified, metadata')
+      .eq('email', normalizedEmail)
+      .maybeSingle<{
+        email: string;
+        platform: Platform | null;
+        verified: boolean;
+        metadata: Record<string, unknown> | null;
+      }>();
 
-      if (!user) {
-        return NextResponse.json(
-          { error: 'User not found in waitlist' },
-          { status: 404 }
-        );
-      }
-
-      if (!user.verified) {
-        return NextResponse.json(
-          { error: 'User not verified' },
-          { status: 403 }
-        );
-      }
-
-      if (normalizePlatform(user.platform) !== 'ios') {
-        return NextResponse.json({
-          success: false,
-          skipped: true,
-          reason: `User platform is ${user.platform}, not iOS`,
-        });
-      }
-
-      if (user.metadata?.testflight_invited === true) {
-        return NextResponse.json({
-          success: true,
-          alreadyInvited: true,
-          message: 'User was already invited to TestFlight',
-        });
-      }
-
-      // Send TestFlight invite
-      const result = await addBetaTester(normalizedEmail);
-
-      await supabase
-        .from('waitlist')
-        .update({ metadata: mergeInviteMetadata(user.metadata, result) })
-        .eq('email', normalizedEmail);
-
-      if (result.success) {
-        return NextResponse.json({
-          success: true,
-          testerId: result.testerId,
-          alreadyInvited: result.alreadyInvited,
-          message: result.alreadyInvited
-            ? 'User was already invited to TestFlight'
-            : 'TestFlight invite sent successfully',
-        });
-      }
-
-      return NextResponse.json({
-        success: false,
-        error: result.error,
-      }, { status: 500 });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found in waitlist' },
+        { status: 404 }
+      );
     }
 
-    // Without database config, preserve the old manual behavior.
+    if (!user.verified) {
+      return NextResponse.json(
+        { error: 'User not verified' },
+        { status: 403 }
+      );
+    }
+
+    if (normalizePlatform(user.platform) !== 'ios') {
+      return NextResponse.json({
+        success: false,
+        skipped: true,
+        reason: `User platform is ${user.platform}, not iOS`,
+      });
+    }
+
+    if (user.metadata?.testflight_invited === true) {
+      return NextResponse.json({
+        success: true,
+        alreadyInvited: true,
+        message: 'User was already invited to TestFlight',
+      });
+    }
+
+    // Send TestFlight invite
     const result = await addBetaTester(normalizedEmail);
+
+    await supabase
+      .from('waitlist')
+      .update({ metadata: mergeInviteMetadata(user.metadata, result) })
+      .eq('email', normalizedEmail);
 
     if (result.success) {
       return NextResponse.json({

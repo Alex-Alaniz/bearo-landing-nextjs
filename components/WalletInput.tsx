@@ -66,7 +66,7 @@ export const WalletInput: React.FC<WalletInputProps> = ({
         {/* Info Box - more compact on mobile */}
         <div className="rounded-xl bg-bearo-honey/10 border border-bearo-honey/20 p-3 sm:p-4 mb-4 sm:mb-6">
           <p className="text-white/80 text-sm leading-relaxed">
-            Enter your <span className="text-bearo-honey font-semibold">Solana wallet</span> for referral airdrops.
+            Add a wallet so we can keep your rewards profile connected.
           </p>
         </div>
 

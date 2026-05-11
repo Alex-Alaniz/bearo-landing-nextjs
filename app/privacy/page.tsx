@@ -52,6 +52,7 @@ export default function PrivacyPage() {
             <li>Device information</li>
             <li>App usage statistics</li>
             <li>Error logs and diagnostic data</li>
+            <li>Referral link, invite-claim, beta access, and anti-abuse telemetry such as referral codes, platform choice, IP-derived rate-limit signals, claim timestamps, and referral cookies that may last up to 30 days</li>
           </ul>
         </section>
 
@@ -64,6 +65,7 @@ export default function PrivacyPage() {
             <li>Verify your identity and prevent fraud</li>
             <li>Send you payment confirmations and notifications</li>
             <li>Improve our app functionality and user experience</li>
+            <li>Attribute referral invites, send beta access instructions, and prevent referral or invite abuse</li>
             <li>Provide customer support</li>
             <li>Comply with legal obligations and enforce our terms</li>
           </ul>
@@ -91,6 +93,10 @@ export default function PrivacyPage() {
 
           <p className="text-gray-300 mb-4">
             <span className="text-white font-semibold">Supabase:</span> For backend database services and user authentication. Please review Supabase&apos;s privacy policy for details on their data practices.
+          </p>
+
+          <p className="text-gray-300 mb-4">
+            <span className="text-white font-semibold">Apple App Store Connect and Google Play:</span> For beta access, TestFlight invites, and testing-program links when you request app access.
           </p>
 
           <p className="text-gray-300 mb-4">

@@ -38,13 +38,13 @@ export const Leaderboard: React.FC = () => {
         <div className="text-center mb-12">
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 rounded-full text-purple-400 text-sm font-medium mb-4">
             <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
-            Live Airdrop Leaderboard
+            Live Rewards Leaderboard
           </span>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Refer & Earn <span className="text-gradient">$BEARCO</span>
+            Refer & Earn <span className="text-gradient">Rewards</span>
           </h2>
           <p className="mt-4 text-white/60 max-w-xl mx-auto">
-            Top referrers earn bonus $BEARCO tokens. Refer friends to climb the leaderboard!
+            Top referrers earn bonus Rewards. Refer friends to climb the leaderboard!
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export const Leaderboard: React.FC = () => {
               <p className="text-2xl font-bold text-white mt-1">{formatNumber(stats.totalReferrals)}</p>
             </div>
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <p className="text-white/40 text-xs uppercase tracking-wider">$BEARCO Allocated</p>
+              <p className="text-white/40 text-xs uppercase tracking-wider">Rewards Allocated</p>
               <p className="text-2xl font-bold text-purple-400 mt-1">{formatNumber(stats.totalAllocated)}</p>
             </div>
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
@@ -78,7 +78,7 @@ export const Leaderboard: React.FC = () => {
             <div className="col-span-3">Code</div>
             <div className="col-span-3">Tier</div>
             <div className="col-span-2 text-center">Referrals</div>
-            <div className="col-span-3 text-right">$BEARCO</div>
+            <div className="col-span-3 text-right">Rewards</div>
           </div>
 
           {/* Loading State */}
@@ -155,7 +155,7 @@ export const Leaderboard: React.FC = () => {
         {/* CTA */}
         <div className="mt-8 text-center">
           <p className="text-white/40 text-sm mb-4">
-            Join the waitlist to get your referral code and start earning $BEARCO
+            Join the waitlist to get your referral code and start earning Rewards
           </p>
           <div className="inline-flex rounded-full rainbow-border p-[2px] hover:scale-[1.02] transition-transform duration-200">
             <button

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Platform } from '../../../lib/deviceDetection';
 import { addBetaTester, isConfigured as isTestFlightConfigured } from '../../../lib/appStoreConnect';
+import { completeThirdwebEmailOtp, normalizeEmail } from '../../../lib/referralClaim';
 
 // Use service role key - only available on server
 function getSupabase() {
@@ -135,12 +136,12 @@ async function updateTestFlightMetadata(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, tierNumber, tierName, referredBy, thirdwebUserId, platform } = body as {
+    const { email, tierNumber, tierName, referredBy, otp, platform } = body as {
       email: string;
       tierNumber: number;
       tierName: string;
       referredBy?: string;
-      thirdwebUserId: string;
+      otp?: string;
       platform?: Platform;
     };
 
@@ -149,13 +150,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // SECURITY: Require thirdweb authentication
-    if (!thirdwebUserId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      return NextResponse.json({ error: 'Enter a valid email.' }, { status: 400 });
     }
 
+    const verificationCode = typeof otp === 'string' ? otp.trim() : '';
+    if (!/^\d{6,8}$/.test(verificationCode)) {
+      return NextResponse.json({ error: 'Enter the verification code from your email.' }, { status: 400 });
+    }
+
+    // Complete OTP on the server before any privileged waitlist writes.
+    const thirdweb = await completeThirdwebEmailOtp(normalizedEmail, verificationCode, body.challenge);
+    const thirdwebUserId = thirdweb.userId;
+
     const supabase = getSupabase();
-    const normalizedEmail = email.toLowerCase().trim();
     const normalizedPlatform = normalizePlatform(platform);
 
     // Check if already exists
@@ -198,6 +207,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         existing: true,
+        userId: thirdwebUserId,
         referralCode: existing.referral_code,
         referralLink: `https://bearo.cash/refer/${encodeURIComponent(existing.referral_code)}`,
       });
@@ -297,6 +307,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      userId: thirdwebUserId,
       referralCode,
       referralLink: `https://bearo.cash/refer/${encodeURIComponent(referralCode)}`,
       position: signupPosition,

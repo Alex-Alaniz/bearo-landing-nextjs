@@ -556,7 +556,7 @@ export const Hero: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-white/40 text-xs mt-4 text-center">
-                    Share your code to earn bonus $BEARCO tokens!
+                    Share your code to earn bonus Rewards!
                   </p>
                 </div>
               )}

@@ -426,7 +426,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
 
     if (waitlistData) {
       const isAuthenticated = !!waitlistData.thirdweb_user_id;
-      const referralLink = `https://bearo.cash/?ref=${encodeURIComponent(waitlistData.referral_code)}`;
+      const referralLink = `https://bearo.cash/refer/${encodeURIComponent(waitlistData.referral_code)}`;
       console.log(`✅ Found existing user: ${email} - ${waitlistData.tier_name} - auth: ${isAuthenticated} - wallet: ${waitlistData.solana_wallet_address || 'not set'}`);
       return {
         exists: true,

@@ -24,6 +24,14 @@ const CashAppInvest = () => {
   // Track if animation is paused due to scroll
   const [isPausedByScroll, setIsPausedByScroll] = useState(false);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref")?.trim().toUpperCase();
+    if (ref && /^BEAR[A-Z0-9]{4}$/.test(ref)) {
+      window.location.replace(`/refer/${encodeURIComponent(ref)}`);
+    }
+  }, []);
+
   // Scroll detection to pause/resume animation and show widgets
   useEffect(() => {
     const handleScroll = () => {

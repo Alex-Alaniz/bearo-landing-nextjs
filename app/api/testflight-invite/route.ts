@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addBetaTester, isConfigured } from '../../../lib/appStoreConnect';
 import { createClient } from '@supabase/supabase-js';
+import type { Platform } from '../../../lib/deviceDetection';
 
 // Use service role key - only available on server
 function getSupabase() {
@@ -12,6 +13,35 @@ function getSupabase() {
   }
 
   return createClient(url, serviceKey);
+}
+
+const VALID_PLATFORMS = new Set<Platform>(['ios', 'android', 'desktop', 'unknown']);
+
+function normalizePlatform(platform: unknown): Platform {
+  return typeof platform === 'string' && VALID_PLATFORMS.has(platform as Platform)
+    ? platform as Platform
+    : 'unknown';
+}
+
+function mergeInviteMetadata(
+  previousMetadata: Record<string, unknown> | null,
+  result: Awaited<ReturnType<typeof addBetaTester>>
+) {
+  const metadata: Record<string, unknown> = {
+    ...(previousMetadata || {}),
+    testflight_invited: result.success,
+    testflight_invited_at: new Date().toISOString(),
+    testflight_already_invited: result.alreadyInvited || false,
+  };
+
+  if (!result.success && result.error) {
+    metadata.testflight_error = result.error;
+  } else {
+    delete metadata.testflight_error;
+    delete metadata.testflight_skipped_reason;
+  }
+
+  return metadata;
 }
 
 /**
@@ -56,9 +86,14 @@ export async function POST(req: NextRequest) {
     if (supabase) {
       const { data: user } = await supabase
         .from('waitlist')
-        .select('email, platform, verified')
+        .select('email, platform, verified, metadata')
         .eq('email', normalizedEmail)
-        .maybeSingle();
+        .maybeSingle<{
+          email: string;
+          platform: Platform | null;
+          verified: boolean;
+          metadata: Record<string, unknown> | null;
+        }>();
 
       if (!user) {
         return NextResponse.json(
@@ -74,16 +109,48 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (user.platform !== 'ios') {
+      if (normalizePlatform(user.platform) !== 'ios') {
         return NextResponse.json({
           success: false,
           skipped: true,
           reason: `User platform is ${user.platform}, not iOS`,
         });
       }
+
+      if (user.metadata?.testflight_invited === true) {
+        return NextResponse.json({
+          success: true,
+          alreadyInvited: true,
+          message: 'User was already invited to TestFlight',
+        });
+      }
+
+      // Send TestFlight invite
+      const result = await addBetaTester(normalizedEmail);
+
+      await supabase
+        .from('waitlist')
+        .update({ metadata: mergeInviteMetadata(user.metadata, result) })
+        .eq('email', normalizedEmail);
+
+      if (result.success) {
+        return NextResponse.json({
+          success: true,
+          testerId: result.testerId,
+          alreadyInvited: result.alreadyInvited,
+          message: result.alreadyInvited
+            ? 'User was already invited to TestFlight'
+            : 'TestFlight invite sent successfully',
+        });
+      }
+
+      return NextResponse.json({
+        success: false,
+        error: result.error,
+      }, { status: 500 });
     }
 
-    // Send TestFlight invite
+    // Without database config, preserve the old manual behavior.
     const result = await addBetaTester(normalizedEmail);
 
     if (result.success) {

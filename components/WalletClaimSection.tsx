@@ -682,7 +682,7 @@ export const WalletClaimSection: React.FC = () => {
                   <button
                     onClick={async () => {
                       try {
-                        await navigator.clipboard.writeText(`https://bearo.cash/?ref=${allocation.referral_code}`);
+                        await navigator.clipboard.writeText(`https://bearo.cash/refer/${allocation.referral_code}`);
                         alert('Referral link copied!');
                       } catch {
                         alert('Copy failed');

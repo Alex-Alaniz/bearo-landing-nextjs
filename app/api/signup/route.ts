@@ -28,6 +28,25 @@ const TIER_BASE_AMOUNTS: Record<number, number> = {
   1: 50000, 2: 10000, 3: 2500, 4: 1000, 5: 500, 6: 100,
 };
 
+const VALID_PLATFORMS = new Set<Platform>(['ios', 'android', 'desktop', 'unknown']);
+
+type WaitlistMetadata = Record<string, unknown>;
+
+interface WaitlistUser {
+  email: string;
+  referral_code: string;
+  platform: Platform | null;
+  metadata: WaitlistMetadata | null;
+  thirdweb_user_id: string | null;
+  verified: boolean | null;
+}
+
+function normalizePlatform(platform: unknown): Platform {
+  return typeof platform === 'string' && VALID_PLATFORMS.has(platform as Platform)
+    ? platform as Platform
+    : 'unknown';
+}
+
 function generateReferralCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = 'BEAR';
@@ -35,6 +54,82 @@ function generateReferralCode(): string {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return code;
+}
+
+async function trackTestFlightInvite(
+  supabase: ReturnType<typeof getSupabase>,
+  email: string,
+  previousMetadata: WaitlistMetadata | null,
+  platform: Platform
+) {
+  if (platform !== 'ios') {
+    return;
+  }
+
+  if (previousMetadata?.testflight_invited === true) {
+    return;
+  }
+
+  const nextMetadata: WaitlistMetadata = {
+    ...(previousMetadata || {}),
+    testflight_checked_at: new Date().toISOString(),
+  };
+
+  if (!isTestFlightConfigured()) {
+    nextMetadata.testflight_invited = false;
+    nextMetadata.testflight_skipped_reason = 'not_configured';
+
+    await updateTestFlightMetadata(supabase, email, nextMetadata);
+
+    console.warn(`📱 [TestFlight] Skipped for ${email}: App Store Connect not configured`);
+    return;
+  }
+
+  try {
+    const result = await addBetaTester(email);
+
+    nextMetadata.testflight_invited = result.success;
+    nextMetadata.testflight_invited_at = new Date().toISOString();
+    nextMetadata.testflight_already_invited = result.alreadyInvited || false;
+    delete nextMetadata.testflight_skipped_reason;
+
+    if (!result.success && result.error) {
+      nextMetadata.testflight_error = result.error;
+    } else {
+      delete nextMetadata.testflight_error;
+    }
+
+    await updateTestFlightMetadata(supabase, email, nextMetadata);
+
+    if (result.success) {
+      console.log(`📱 [TestFlight] Invite sent to ${email}${result.alreadyInvited ? ' (already invited)' : ''}`);
+    } else {
+      console.error(`📱 [TestFlight] Failed for ${email}:`, result.error);
+    }
+  } catch (testflightErr) {
+    console.error(`📱 [TestFlight] Error for ${email}:`, testflightErr);
+
+    nextMetadata.testflight_invited = false;
+    nextMetadata.testflight_invited_at = new Date().toISOString();
+    nextMetadata.testflight_error = testflightErr instanceof Error ? testflightErr.message : 'Unknown error';
+
+    await updateTestFlightMetadata(supabase, email, nextMetadata);
+  }
+}
+
+async function updateTestFlightMetadata(
+  supabase: ReturnType<typeof getSupabase>,
+  email: string,
+  metadata: WaitlistMetadata
+) {
+  const { error } = await supabase
+    .from('waitlist')
+    .update({ metadata })
+    .eq('email', email);
+
+  if (error) {
+    console.error(`📱 [TestFlight] Failed to update metadata for ${email}:`, error);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -61,20 +156,50 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabase();
     const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPlatform = normalizePlatform(platform);
 
     // Check if already exists
     const { data: existing } = await supabase
       .from('waitlist')
-      .select('email, referral_code')
+      .select('email, referral_code, platform, metadata, thirdweb_user_id, verified')
       .eq('email', normalizedEmail)
-      .maybeSingle();
+      .maybeSingle<WaitlistUser>();
 
     if (existing) {
+      const existingPlatform = normalizePlatform(existing.platform);
+      const effectivePlatform = normalizedPlatform !== 'unknown'
+        ? normalizedPlatform
+        : existingPlatform;
+      const updates: Record<string, unknown> = {
+        verified: true,
+        thirdweb_user_id: thirdwebUserId,
+      };
+
+      if (normalizedPlatform !== 'unknown' && normalizedPlatform !== existingPlatform) {
+        updates.platform = normalizedPlatform;
+      }
+
+      const { error: updateError } = await supabase
+        .from('waitlist')
+        .update(updates)
+        .eq('email', normalizedEmail);
+
+      if (updateError) {
+        console.error('Existing user update error:', updateError);
+      }
+
+      await trackTestFlightInvite(
+        supabase,
+        normalizedEmail,
+        existing.metadata,
+        effectivePlatform
+      );
+
       return NextResponse.json({
         success: true,
         existing: true,
         referralCode: existing.referral_code,
-        referralLink: `https://bearo.cash/?ref=${encodeURIComponent(existing.referral_code)}`,
+        referralLink: `https://bearo.cash/refer/${encodeURIComponent(existing.referral_code)}`,
       });
     }
 
@@ -132,7 +257,7 @@ export async function POST(req: NextRequest) {
         referred_by: validatedReferrer,
         thirdweb_user_id: thirdwebUserId,
         verified: true, // They've completed thirdweb auth
-        platform: platform || 'unknown', // Device platform for TestFlight/Play Store targeting
+        platform: normalizedPlatform, // Device platform for TestFlight/Play Store targeting
       });
 
     if (insertError) {
@@ -165,59 +290,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Trigger TestFlight invite for iOS users (BLOCKING - must complete before response)
-    // Serverless functions terminate after response, so we MUST await this
-    if (platform === 'ios' && isTestFlightConfigured()) {
-      try {
-        const result = await addBetaTester(normalizedEmail);
+    // Serverless functions terminate after response, so we MUST await this.
+    await trackTestFlightInvite(supabase, normalizedEmail, null, normalizedPlatform);
 
-        // Track the invite attempt in metadata
-        const testflightMetadata: Record<string, unknown> = {
-          testflight_invited: result.success,
-          testflight_invited_at: new Date().toISOString(),
-          testflight_already_invited: result.alreadyInvited || false,
-        };
-
-        if (!result.success && result.error) {
-          testflightMetadata.testflight_error = result.error;
-        }
-
-        // Update the user's metadata with TestFlight status
-        await supabase
-          .from('waitlist')
-          .update({ metadata: testflightMetadata })
-          .eq('email', normalizedEmail);
-
-        if (result.success) {
-          console.log(`📱 [TestFlight] Invite sent to ${normalizedEmail}${result.alreadyInvited ? ' (already invited)' : ''}`);
-        } else {
-          console.error(`📱 [TestFlight] Failed for ${normalizedEmail}:`, result.error);
-        }
-      } catch (testflightErr) {
-        console.error(`📱 [TestFlight] Error for ${normalizedEmail}:`, testflightErr);
-        // Track the error in metadata (non-fatal to signup)
-        try {
-          await supabase
-            .from('waitlist')
-            .update({
-              metadata: {
-                testflight_invited: false,
-                testflight_invited_at: new Date().toISOString(),
-                testflight_error: testflightErr instanceof Error ? testflightErr.message : 'Unknown error',
-              }
-            })
-            .eq('email', normalizedEmail);
-        } catch {
-          // Ignore metadata update error
-        }
-      }
-    }
-
-    console.log(`✅ [API] ${normalizedEmail} signed up: ${tierName}, code: ${referralCode}, platform: ${platform || 'unknown'}`);
+    console.log(`✅ [API] ${normalizedEmail} signed up: ${tierName}, code: ${referralCode}, platform: ${normalizedPlatform}`);
 
     return NextResponse.json({
       success: true,
       referralCode,
-      referralLink: `https://bearo.cash/?ref=${encodeURIComponent(referralCode)}`,
+      referralLink: `https://bearo.cash/refer/${encodeURIComponent(referralCode)}`,
       position: signupPosition,
       spotsLeft: spotsLeft - 1,
     });

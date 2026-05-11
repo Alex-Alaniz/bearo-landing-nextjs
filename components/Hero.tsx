@@ -142,44 +142,35 @@ export const Hero: React.FC = () => {
     setShowEmailVerification(false);
 
     try {
-      // For existing users, check if they have a wallet
-      if (existingUser?.exists && existingUser.referralCode && existingUser.referralLink) {
-        console.log(`✅ Welcome back ${email}! Tier: ${existingUser.tierName}, Auth: ${existingUser.isAuthenticated}`);
-
-        // SECURITY: Only allow wallet input if user is authenticated
-        if (!existingUser.isAuthenticated) {
-          console.warn('🚫 User exists but not authenticated - requiring OTP verification');
-          // Don't return - fall through to normal verification flow
-        } else if (existingUser.walletAddress) {
-          // Has wallet - show code immediately
-          setIsSubmitted(true);
-          setReferral({ code: existingUser.referralCode, link: existingUser.referralLink });
-          return;
-        } else {
-          // Authenticated but no wallet - show wallet input
-          console.log('🔐 Authenticated user needs to set wallet before getting code');
-          setShowWalletInput(true);
-          return;
-        }
-      }
-
-      // New user - verify with backend API (thirdweb + Supabase)
-      // Pass URL referral code if present (5th parameter) and detected platform (6th parameter)
+      // Verify with backend API (thirdweb + Supabase).
+      // Existing users still go through this path so OTP is actually checked and
+      // iOS platform/TestFlight metadata can be repaired on return visits.
       const userPlatform = detectPlatform();
       const result = await verifyAndClaimTier(
         email,
         otp,
         claimedTier.number,
         claimedTier.name,
-        urlReferralCode || undefined,
+        existingUser?.exists ? undefined : urlReferralCode || undefined,
         userPlatform
       );
 
       console.log(`✅ ${email} verified and claimed ${claimedTier.name}!`, result);
 
-      // Store referral info for after wallet is set
       if (result.referralCode && result.referralLink) {
         setReferral({ code: result.referralCode, link: result.referralLink });
+      }
+
+      // For existing users, show their referral code after a real OTP check.
+      if (existingUser?.exists) {
+        if (existingUser.walletAddress) {
+          setIsSubmitted(true);
+          return;
+        }
+
+        console.log('🔐 Verified existing user needs to set wallet before getting code');
+        setShowWalletInput(true);
+        return;
       }
 
       // Show wallet input (required before showing code)
@@ -565,7 +556,7 @@ export const Hero: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-white/40 text-xs mt-4 text-center">
-                    Share your code to earn bonus $BEARCO tokens!
+                    Share your code to earn bonus Rewards!
                   </p>
                 </div>
               )}

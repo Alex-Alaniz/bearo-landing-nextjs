@@ -79,9 +79,9 @@ stateDiagram-v2
 
 | Component | Location | Status | Notes |
 |-----------|----------|--------|-------|
-| TestFlight Invite | lib/appStoreConnect.ts | ⚠️ | Code deployed, never tested E2E |
-| ASC JWT Auth | lib/appStoreConnect.ts | ⚠️ | jose dependency added, untested |
-| Beta Group Fetch | lib/appStoreConnect.ts | ⚠️ | Assumes beta group exists |
+| TestFlight Invite | lib/appStoreConnect.ts | ⚠️ | Handles new testers and existing testers; still needs live ASC E2E |
+| ASC JWT Auth | lib/appStoreConnect.ts | ⚠️ | jose dependency added, build/type checked |
+| Beta Group Fetch | lib/appStoreConnect.ts | ⚠️ | Uses `APP_STORE_CONNECT_BETA_GROUP_ID` when set, otherwise first external group |
 
 ### ❓ PREREQUISITES FOR TESTFLIGHT
 
@@ -193,3 +193,4 @@ OR
 | `lib/appStoreConnect.ts` | TestFlight API integration |
 | `app/api/signup/route.ts` | Backend signup handler |
 | `app/api/waitlist/route.ts` | Waitlist stats API |
+| `supabase/testflight_invites.sql` | TestFlight platform/metadata columns |

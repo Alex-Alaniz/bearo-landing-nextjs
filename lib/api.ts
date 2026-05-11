@@ -26,16 +26,6 @@ const TIER_MAX_SPOTS: Record<number, number> = {
   6: 4000  // Community
 };
 
-// Base token amounts per tier (for airdrop)
-const TIER_BASE_AMOUNTS: Record<number, number> = {
-  1: 50000,  // OG Founder
-  2: 10000,  // Alpha Insider
-  3: 2500,   // Beta Crew
-  4: 1000,   // Early Adopter
-  5: 500,    // Pioneer Wave
-  6: 100     // Community
-};
-
 interface InitiateResponse {
   success: boolean;
   message: string;
@@ -50,16 +40,6 @@ interface VerifyResponse {
   userId: string;
   referralCode?: string;
   referralLink?: string;
-}
-
-// Generate referral code matching database format: BEAR + 4 alphanumeric chars
-function generateReferralCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding confusing chars (0, O, I, L, 1)
-  let result = 'BEAR';
-  for (let i = 0; i < 4; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
 }
 
 function storeLocalFallback(authResult: ThirdwebAuthResult, email: string, tierNumber: number, tierName: string, referralCode: string, referralLink: string) {
@@ -159,19 +139,6 @@ export async function initiateWaitlistAuth(email: string): Promise<InitiateRespo
   }
 }
 
-// Validate referrer code exists
-async function validateReferrerCode(code: string): Promise<boolean> {
-  if (!supabase || !code) return false;
-
-  const { data } = await supabase
-    .from('airdrop_allocations')
-    .select('referral_code')
-    .eq('referral_code', code.toUpperCase())
-    .maybeSingle();
-
-  return !!data;
-}
-
 // Verify OTP and claim tier - syncs with Supabase database
 export async function verifyAndClaimTier(
   email: string,
@@ -182,11 +149,6 @@ export async function verifyAndClaimTier(
   platform?: Platform  // Optional: device platform (ios, android, desktop, unknown)
 ): Promise<VerifyResponse> {
   try {
-    // 1. Complete thirdweb authentication
-    if (!THIRDWEB_CLIENT_ID) {
-      throw new Error('Thirdweb Client ID not configured');
-    }
-
     console.log('🔐 Verifying code for:', email, 'Code length:', otp.length, 'Code:', otp.substring(0, 2) + '****');
 
     // Get stored challenge if available
@@ -196,91 +158,13 @@ export async function verifyAndClaimTier(
       try {
         challenge = JSON.parse(storedChallenge);
         console.log('📝 Using stored challenge');
-      } catch (e) {
+      } catch {
         console.warn('⚠️ Failed to parse stored challenge');
       }
     }
 
-    // Try 'code' parameter first (most common)
-    let completeBody: Record<string, string> = {
-      method: 'email',
-      email,
-      code: otp,
-    };
-
-    if (challenge) {
-      completeBody.challenge = challenge;
-    }
-
-    let authResponse = await fetch(`${THIRDWEB_API}/auth/complete`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-client-id': THIRDWEB_CLIENT_ID,
-      },
-      body: JSON.stringify(completeBody),
-    });
-
-    // If 'code' doesn't work, try 'verificationCode'
-    if (!authResponse.ok) {
-      const errorData = await authResponse.json().catch(() => ({}));
-      console.log('⚠️ First attempt with "code" failed:', {
-        status: authResponse.status,
-        error: errorData
-      });
-
-      console.log('🔄 Retrying with "verificationCode" parameter...');
-      completeBody = {
-        method: 'email',
-        email,
-        verificationCode: otp,
-      };
-
-      if (challenge) {
-        completeBody.challenge = challenge;
-      }
-
-      authResponse = await fetch(`${THIRDWEB_API}/auth/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-id': THIRDWEB_CLIENT_ID,
-        },
-        body: JSON.stringify(completeBody),
-      });
-    }
-
-    if (!authResponse.ok) {
-      const errorText = await authResponse.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText || `HTTP ${authResponse.status}: ${authResponse.statusText}` };
-      }
-
-      // Log full error details including validation issues
-      console.error('❌ Thirdweb complete error:', {
-        status: authResponse.status,
-        statusText: authResponse.statusText,
-        error: errorData,
-        errorIssues: errorData.error?.issues || errorData.issues || [],
-        requestBody: completeBody,
-        endpoint: `${THIRDWEB_API}/auth/complete`
-      });
-
-      // Show validation errors if present
-      if (errorData.error?.issues) {
-        console.error('📋 Validation errors:', errorData.error.issues);
-      }
-
-      throw new Error(errorData.message || errorData.error?.message || 'Invalid verification code');
-    }
-
-    const authResult = await authResponse.json();
-    console.log('✅ Email verified with thirdweb:', authResult);
-
-    // 2. Save to database via secure API endpoint (uses service role)
+    // Complete OTP and write waitlist state on the server so the service-role
+    // route never trusts a client-supplied thirdweb user id.
     try {
       const signupResponse = await fetch('/api/signup', {
         method: 'POST',
@@ -290,7 +174,8 @@ export async function verifyAndClaimTier(
           tierNumber,
           tierName,
           referredBy,
-          thirdwebUserId: authResult.userId,
+          otp,
+          challenge,
           platform,
         }),
       });
@@ -303,8 +188,12 @@ export async function verifyAndClaimTier(
 
       const referralCode = signupResult.referralCode;
       const referralLink = signupResult.referralLink;
+      if (typeof signupResult.userId !== 'string' || !signupResult.userId) {
+        throw new Error('Signup completed without an authenticated user id.');
+      }
 
       // Store local fallback
+      const authResult: ThirdwebAuthResult = { userId: signupResult.userId };
       storeLocalFallback(authResult, email, tierNumber, tierName, referralCode, referralLink);
 
       // If user signed up with a referral code, trigger airdrop to referrer
@@ -340,7 +229,7 @@ export async function verifyAndClaimTier(
         tierNumber,
         position: signupResult.position || 0,
         spotsLeft: signupResult.spotsLeft || 0,
-        userId: authResult.userId,
+        userId: signupResult.userId,
         referralCode,
         referralLink,
       };
@@ -426,7 +315,7 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
 
     if (waitlistData) {
       const isAuthenticated = !!waitlistData.thirdweb_user_id;
-      const referralLink = `https://bearo.cash/?ref=${encodeURIComponent(waitlistData.referral_code)}`;
+      const referralLink = `https://bearo.cash/refer/${encodeURIComponent(waitlistData.referral_code)}`;
       console.log(`✅ Found existing user: ${email} - ${waitlistData.tier_name} - auth: ${isAuthenticated} - wallet: ${waitlistData.solana_wallet_address || 'not set'}`);
       return {
         exists: true,
@@ -682,8 +571,8 @@ export async function linkReferralRetroactively(
     return {
       success: true,
       message: airdropSent
-        ? 'Referral linked successfully! Your referrer has been queued for a $BEARCO airdrop.'
-        : 'Referral linked successfully! Both you and your referrer will receive bonus tokens.',
+        ? 'Referral linked successfully! Your referrer has been queued for bonus Rewards.'
+        : 'Referral linked successfully! Both you and your referrer will receive bonus Rewards.',
       referrerCode: normalizedCode,
       airdropSent,
     };

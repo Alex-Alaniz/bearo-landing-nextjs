@@ -16,6 +16,7 @@ interface AppStoreConnectConfig {
   issuerId: string;
   privateKey: string;
   appId: string;
+  betaGroupId?: string;
 }
 
 interface BetaGroupResource {
@@ -23,6 +24,24 @@ interface BetaGroupResource {
   attributes?: {
     isInternalGroup?: boolean;
   };
+}
+
+interface BetaTesterResource {
+  id: string;
+  attributes?: {
+    email?: string;
+  };
+}
+
+interface AppStoreConnectApiError {
+  code?: string;
+  status?: string;
+  title?: string;
+  detail?: string;
+}
+
+interface AppStoreConnectErrorResponse {
+  errors?: AppStoreConnectApiError[];
 }
 
 function cleanScalarEnv(value: string | undefined): string | undefined {
@@ -36,6 +55,7 @@ function getConfig(): AppStoreConnectConfig {
   const issuerId = cleanScalarEnv(process.env.APP_STORE_CONNECT_ISSUER_ID);
   const privateKeyBase64 = process.env.APP_STORE_CONNECT_PRIVATE_KEY?.trim();
   const appId = cleanScalarEnv(process.env.APP_STORE_CONNECT_APP_ID);
+  const betaGroupId = cleanScalarEnv(process.env.APP_STORE_CONNECT_BETA_GROUP_ID);
 
   if (!keyId || !issuerId || !privateKeyBase64 || !appId) {
     throw new Error('Missing App Store Connect configuration. Required: APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_APP_ID');
@@ -65,9 +85,10 @@ function getConfig(): AppStoreConnectConfig {
     rawKeyLength: privateKeyBase64.length,
     decodedKeyLength: privateKey.length,
     keyStartsWith: privateKey.substring(0, 27), // Just "-----BEGIN PRIVATE KEY-----"
+    betaGroupId: betaGroupId ? 'configured' : 'auto-detect',
   });
 
-  return { keyId, issuerId, privateKey, appId };
+  return { keyId, issuerId, privateKey, appId, betaGroupId };
 }
 
 /**
@@ -126,6 +147,72 @@ async function getBetaGroupId(token: string, appId: string): Promise<string> {
   return groupToUse.id;
 }
 
+function getHeaders(token: string): HeadersInit {
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+function formatApiError(errorData: AppStoreConnectErrorResponse, fallback: string): string {
+  const firstError = errorData.errors?.[0];
+  return firstError?.detail || firstError?.title || fallback;
+}
+
+function mentionsAlreadyAssigned(error: AppStoreConnectApiError): boolean {
+  const text = `${error.code || ''} ${error.title || ''} ${error.detail || ''}`.toLowerCase();
+  return text.includes('already') || text.includes('exists') || text.includes('duplicate');
+}
+
+async function findBetaTesterByEmail(token: string, email: string): Promise<string | null> {
+  const params = new URLSearchParams({
+    'filter[email]': email.toLowerCase().trim(),
+    limit: '1',
+  });
+
+  const response = await fetch(`${APP_STORE_API_BASE}/betaTesters?${params.toString()}`, {
+    headers: getHeaders(token),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({} as AppStoreConnectErrorResponse));
+    throw new Error(formatApiError(errorData, `Failed to find beta tester: HTTP ${response.status}`));
+  }
+
+  const data = await response.json() as { data?: BetaTesterResource[] };
+  return data.data?.[0]?.id || null;
+}
+
+async function addTesterToBetaGroup(
+  token: string,
+  testerId: string,
+  betaGroupId: string
+): Promise<{ success: boolean; alreadyInvited?: boolean; error?: string }> {
+  const response = await fetch(`${APP_STORE_API_BASE}/betaTesters/${testerId}/relationships/betaGroups`, {
+    method: 'POST',
+    headers: getHeaders(token),
+    body: JSON.stringify({
+      data: [{ type: 'betaGroups', id: betaGroupId }],
+    }),
+  });
+
+  if (response.status === 204) {
+    return { success: true };
+  }
+
+  const errorData = await response.json().catch(() => ({} as AppStoreConnectErrorResponse));
+  const errors = errorData.errors || [];
+
+  if (response.status === 409 && errors.some(mentionsAlreadyAssigned)) {
+    return { success: true, alreadyInvited: true };
+  }
+
+  return {
+    success: false,
+    error: formatApiError(errorData, `Failed to add tester to beta group: HTTP ${response.status}`),
+  };
+}
+
 export interface AddTesterResult {
   success: boolean;
   testerId?: string;
@@ -149,20 +236,18 @@ export async function addBetaTester(
     const token = await generateToken(config);
 
     // Get the beta group ID
-    const betaGroupId = await getBetaGroupId(token, config.appId);
+    const betaGroupId = config.betaGroupId || await getBetaGroupId(token, config.appId);
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Create the beta tester
     const createResponse = await fetch(`${APP_STORE_API_BASE}/betaTesters`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      headers: getHeaders(token),
       body: JSON.stringify({
         data: {
           type: 'betaTesters',
           attributes: {
-            email: email.toLowerCase().trim(),
+            email: normalizedEmail,
             firstName,
             lastName,
           },
@@ -188,19 +273,36 @@ export async function addBetaTester(
     const errorData = await createResponse.json().catch(() => ({}));
     const errors = errorData.errors || [];
 
-    // Check if already invited (409 conflict or specific error code)
-    const alreadyInvited = errors.some(
-      (e: { code?: string; status?: string }) =>
-        e.code === 'ENTITY_ERROR.RELATIONSHIP.INVALID_BETA_TESTER' ||
-        e.status === '409'
-    );
+    // If the tester already exists, attach them to this app's beta group.
+    if (createResponse.status === 409) {
+      const testerId = await findBetaTesterByEmail(token, normalizedEmail);
 
-    if (alreadyInvited) {
-      console.log(`ℹ️ [TestFlight] Tester already invited: ${email}`);
-      return {
-        success: true,
-        alreadyInvited: true,
-      };
+      if (testerId) {
+        const groupResult = await addTesterToBetaGroup(token, testerId, betaGroupId);
+
+        if (groupResult.success) {
+          console.log(`✅ [TestFlight] Existing tester linked to beta group: ${email}`);
+          return {
+            success: true,
+            testerId,
+            alreadyInvited: groupResult.alreadyInvited || false,
+          };
+        }
+
+        console.error(`❌ [TestFlight] Failed to link existing tester ${email}:`, groupResult.error);
+        return {
+          success: false,
+          error: groupResult.error,
+        };
+      }
+
+      if (errors.some(mentionsAlreadyAssigned)) {
+        console.log(`ℹ️ [TestFlight] Tester already invited: ${email}`);
+        return {
+          success: true,
+          alreadyInvited: true,
+        };
+      }
     }
 
     const errorMessage = errors[0]?.detail || errors[0]?.title || `HTTP ${createResponse.status}`;

@@ -1,58 +1,43 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bebas_Neue, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import {
+  BEARO_SITE_URL,
+  buildBearoSocialMetadata,
+} from "@/lib/social-metadata";
+import { BearcoPrivyProvider } from "@/components/BearcoPrivyProvider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const ibmPlexSans = IBM_Plex_Sans({
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-ibm-plex-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ["400", "500"],
+  variable: "--font-ibm-plex-mono",
+  subsets: ["latin"],
+});
+
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  variable: "--font-bebas",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Bearo | Bearified Instant Payments",
-  description: "Bearified Instant Payments. Send money instantly to anyone, anywhere. The future of payments is here.",
+  ...buildBearoSocialMetadata({
+    title: "Bearo | Bearified Instant Payments",
+    description:
+      "Bearified Instant Payments. Send money instantly to anyone, anywhere. The future of payments is here.",
+    path: "/",
+    surface: "home",
+    imageAlt: "Bearo social sharing card for Bearified instant payments.",
+  }),
   keywords: ["Bearo", "BIP", "Bearified Instant Payments", "money transfer", "crypto payments", "digital wallet", "fintech"],
   authors: [{ name: "Bearo Inc." }],
   robots: "index, follow",
-  metadataBase: new URL("https://bearo.cash"),
-  alternates: {
-    canonical: "https://bearo.cash",
-  },
-  openGraph: {
-    type: "website",
-    url: "https://bearo.cash",
-    siteName: "Bearo",
-    title: "Bearo | Bearified Instant Payments",
-    description: "Bearified Instant Payments. Send money instantly to anyone, anywhere. The future of payments is here.",
-    images: [
-      {
-        url: "https://bearo.cash/images/BearoApp.png",
-        secureUrl: "https://bearo.cash/images/BearoApp.png",
-        width: 1024,
-        height: 1024,
-        alt: "Bearo - Bearified Instant Payments",
-        type: "image/png",
-      },
-    ],
-    locale: "en_US",
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: "@BearifiedCo",
-    creator: "@BearifiedCo",
-    title: "Bearo | Bearified Instant Payments",
-    description: "Bearified Instant Payments. Send money instantly to anyone, anywhere. The future of payments is here.",
-    images: [
-      {
-        url: "https://bearo.cash/images/BearoApp.png",
-        alt: "Bearo - Bearified Instant Payments",
-      },
-    ],
-  },
+  metadataBase: new URL(BEARO_SITE_URL),
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -86,9 +71,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0b]`}
+        className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} ${bebasNeue.variable} antialiased bg-[#0a0a0b]`}
       >
-        {children}
+        <BearcoPrivyProvider>{children}</BearcoPrivyProvider>
       </body>
     </html>
   );

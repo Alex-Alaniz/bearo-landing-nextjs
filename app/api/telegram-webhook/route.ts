@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const WEBHOOK_SECRET = 'bearo-tg-secret-2024';
-const TELEGRAM_BOT_TOKEN = '8435995676:AAEDCj65v2PwABxzPD-OHQRVyoZs0XXTqe8';
+const WEBHOOK_SECRET = process.env.BEARCO_TELEGRAM_WEBHOOK_SECRET || '';
+const TELEGRAM_BOT_TOKEN = process.env.BEARCO_TELEGRAM_BOT_TOKEN || '';
 const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY || '';
 const TREASURY_WALLET = '5WYCBnCjscrxzS9uDxhi5S9f4R4qwCGnnUvDU2vUeU3s';
 const BEARCO_TOKEN = 'FdFUGJSzJXDCZemQbkBwYs3tZEvixyEc8cZfRqJrpump';
@@ -15,6 +15,7 @@ function getSupabase() {
 }
 
 async function answerCallback(id: string, text: string) {
+  if (!TELEGRAM_BOT_TOKEN) throw new Error('Telegram bot token is not configured.');
   await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -23,6 +24,7 @@ async function answerCallback(id: string, text: string) {
 }
 
 async function editMessage(chatId: string, messageId: number, text: string) {
+  if (!TELEGRAM_BOT_TOKEN) throw new Error('Telegram bot token is not configured.');
   await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -56,8 +58,15 @@ export async function POST(req: NextRequest) {
   const secret = searchParams.get('secret');
 
   // Verify secret token
-  if (secret !== WEBHOOK_SECRET) {
+  if (!WEBHOOK_SECRET || secret !== WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!TELEGRAM_BOT_TOKEN) {
+    return NextResponse.json(
+      { error: 'Telegram bot is not configured.' },
+      { status: 503 },
+    );
   }
 
   try {

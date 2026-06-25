@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ReferralClient } from "./referral-client";
 import { ANDROID_WAITLIST_LABEL, IOS_TESTFLIGHT_URL } from "../../../lib/downloadLinks";
+import { buildBearoSocialMetadata } from "@/lib/social-metadata";
 
 /**
  * ANTI-FARMING NOTES FOR $BEARCO AIRDROP (server-side enforcement):
@@ -38,40 +39,17 @@ export async function generateMetadata({
   const { code } = await params;
   const displayCode = code.toUpperCase();
 
-  return {
+  return buildBearoSocialMetadata({
     title: `Join Bearo - Invited by ${displayCode}`,
     description:
       "You have been invited to Bearo - the instant crypto payments app. Download now and send money instantly to anyone, anywhere.",
-    openGraph: {
-      type: "website",
-      url: `https://bearo.cash/refer/${displayCode}`,
-      siteName: "Bearo",
-      title: `Join Bearo - Invited by ${displayCode}`,
-      description:
-        "You have been invited to Bearo - the instant crypto payments app. Download now and get started.",
-      images: [
-        {
-          url: "https://bearo.cash/images/BearoApp.png",
-          width: 1024,
-          height: 1024,
-          alt: "Bearo - Bearified Instant Payments",
-        },
-      ],
+    path: `/refer/${displayCode}`,
+    surface: "refer",
+    imageAlt: `Bearo invite social sharing card for referral code ${displayCode}.`,
+    imageParams: {
+      code: displayCode,
     },
-    twitter: {
-      card: "summary_large_image",
-      site: "@BearifiedCo",
-      title: `Join Bearo - Invited by ${displayCode}`,
-      description:
-        "You have been invited to Bearo - the instant crypto payments app. Download now and get started.",
-      images: [
-        {
-          url: "https://bearo.cash/images/BearoApp.png",
-          alt: "Bearo - Bearified Instant Payments",
-        },
-      ],
-    },
-  };
+  });
 }
 
 export default async function ReferPage({ params }: ReferPageProps) {

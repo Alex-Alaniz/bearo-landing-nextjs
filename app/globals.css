@@ -6,8 +6,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-display: var(--font-bebas);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -41,6 +42,132 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+.bearified-shell {
+  --bearified-bg: #020202;
+  --bearified-panel: #060606;
+  --bearified-panel-soft: rgb(255 255 255 / 0.035);
+  --bearified-border: rgb(255 255 255 / 0.14);
+  --bearified-border-muted: rgb(255 255 255 / 0.08);
+  --bearified-text: #eeeeee;
+  --bearified-muted: rgb(238 238 238 / 0.52);
+  --bearified-faint: rgb(238 238 238 / 0.34);
+  --bearified-accent: #fe6a00;
+  background: var(--bearified-bg);
+  color: var(--bearified-text);
+  font-family: var(--font-ibm-plex-sans), sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.bearified-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.055) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.34;
+}
+
+.bearified-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+.bearified-stage {
+  position: relative;
+  z-index: 1;
+}
+
+.bearified-panel {
+  border: 1px solid var(--bearified-border);
+  background: color-mix(in oklab, var(--bearified-panel) 82%, transparent);
+  box-shadow: 1px 1px 0 rgb(254 106 0 / 0.13);
+}
+
+.bearified-panel-soft {
+  border: 1px solid var(--bearified-border-muted);
+  background: var(--bearified-panel-soft);
+}
+
+.bearified-display {
+  font-family: var(--font-bebas), sans-serif;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.bearified-kicker {
+  color: var(--bearified-accent);
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.bearified-mono {
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.bearified-input {
+  width: 100%;
+  border: 1px solid var(--bearified-border);
+  background: rgb(255 255 255 / 0.035);
+  color: var(--bearified-text);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.bearified-input:focus {
+  border-color: var(--bearified-accent);
+  background: rgb(254 106 0 / 0.06);
+}
+
+.bearified-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--bearified-accent);
+  background: var(--bearified-accent);
+  color: var(--bearified-bg);
+  border-radius: 0;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.bearified-button:hover {
+  background: transparent;
+  color: var(--bearified-accent);
+}
+
+.bearified-button:disabled {
+  opacity: 0.42;
+}
+
+.bearified-button-secondary {
+  border-color: var(--bearified-border);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--bearified-text);
+}
+
+.bearified-button-secondary:hover {
+  border-color: var(--bearified-accent);
+  background: rgb(254 106 0 / 0.08);
+  color: var(--bearified-accent);
 }
 
 :root {

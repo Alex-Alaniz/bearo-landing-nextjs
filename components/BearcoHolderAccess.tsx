@@ -880,9 +880,9 @@ export function BearcoHolderGate({
   const sessionMatchesProfile =
     holder.sessionReady &&
     holder.sessionWalletAddress === profile?.walletAddress;
-  const verifiedWallet = holder.connected || sessionMatchesProfile;
-  const unlocked =
-    verifiedWallet && profile && profile.holderPercent >= requiredPercent;
+  const qualifies = Boolean(profile && profile.holderPercent >= requiredPercent);
+  const canSignRoomSession = qualifies && holder.connected && !sessionMatchesProfile;
+  const unlocked = sessionMatchesProfile && qualifies;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
@@ -911,12 +911,17 @@ export function BearcoHolderGate({
           className="bearified-button w-full px-5 py-3"
         >
           <Wallet className="h-5 w-5" />
-          {verifiedWallet ? "Wallet session ready" : "Connect Solana wallet"}
+          {sessionMatchesProfile ? "Holder session ready" : "Connect Solana wallet"}
         </button>
 
         {holder.error && (
           <p className="bearified-panel-soft mt-4 p-3 text-sm text-red-200">
             {holder.error}
+          </p>
+        )}
+        {holder.status && (
+          <p className="bearified-panel-soft mt-4 p-3 text-sm text-emerald-200">
+            {holder.status}
           </p>
         )}
 
@@ -945,12 +950,40 @@ export function BearcoHolderGate({
           </div>
         )}
 
-        {!unlocked && (
+        {qualifies && !sessionMatchesProfile && (
+          <div className="bearified-panel-soft mt-4 p-4">
+            <p className="text-sm leading-6 text-orange-100">
+              This wallet meets the {requiredPercent}% room threshold. Sign the
+              holder profile once to create the secure browser session that
+              opens room links.
+            </p>
+            {canSignRoomSession ? (
+              <button
+                onClick={holder.claimProfile}
+                disabled={holder.claiming}
+                className="bearified-button bearified-button-secondary mt-4 w-full justify-center px-4 py-3"
+              >
+                {holder.claiming ? "Waiting for signature..." : "Sign room session"}
+                <BadgeCheck className="h-4 w-4" />
+              </button>
+            ) : (
+              <Link
+                href="/holders"
+                className="bearified-button bearified-button-secondary mt-4 w-full justify-center px-4 py-3"
+              >
+                Sign holder profile
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
+          </div>
+        )}
+
+        {!unlocked && !qualifies && (
           <p className="bearified-panel-soft mt-4 p-4 text-sm leading-6 text-[var(--bearified-muted)]">
             This room opens when the connected wallet holds at least{" "}
             {requiredPercent}% of the $BEARCO supply, counting credited
-            Streamflow locks. Public wallet lookup is not enough; the wallet has
-            to be connected or signed into a holder session.
+            Streamflow locks. Public wallet lookup can show balances, but room
+            links require a signed holder session.
           </p>
         )}
       </section>
@@ -968,21 +1001,19 @@ export function BearcoHolderGate({
           <div className="flex min-h-80 flex-col items-center justify-center text-center">
             <LockKeyhole className="mb-5 h-10 w-10 text-[var(--bearified-faint)]" />
             <h3 className="bearified-display text-5xl leading-none">
-              {unlocked
-                ? "Claim profile to open this room."
-                : "Locked for this wallet."}
+              {qualifies ? "Sign profile to open this room." : "Locked for this wallet."}
             </h3>
             <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--bearified-muted)]">
-              {unlocked
+              {qualifies
                 ? "This wallet meets the holder threshold. Use the holder profile page to sign a claim and start a secure room session."
                 : "The gate checks the signed holder session, live $BEARCO token accounts on Solana, and credited Streamflow locks. Reconnect or sign the profile again, then refresh after the chain catches up."}
             </p>
-            {unlocked && (
+            {qualifies && (
               <Link
                 href="/holders"
                 className="bearified-button bearified-button-secondary mt-6 px-4 py-3"
               >
-                Claim holder profile
+                Sign holder profile
                 <ArrowRight className="h-4 w-4" />
               </Link>
             )}

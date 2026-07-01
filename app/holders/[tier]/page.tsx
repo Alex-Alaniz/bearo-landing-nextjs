@@ -161,6 +161,13 @@ export default async function HolderRoomPage({ params }: HolderRoomPageProps) {
     : null;
   const serverUnlocked =
     holderProfile !== null && holderProfile.holderPercent >= tier.thresholdPercent;
+  const unlockedRoom = (
+    <HolderRoomUnlockedContent
+      copy={copy}
+      holderProfile={holderProfile}
+      tier={tier}
+    />
+  );
 
   return (
     <main className="bearified-shell min-h-screen px-6 py-8 sm:px-8 lg:px-10">
@@ -194,93 +201,118 @@ export default async function HolderRoomPage({ params }: HolderRoomPageProps) {
         </section>
 
         {serverUnlocked ? (
-          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
-            <section className="border border-[var(--bearified-accent)] bg-[rgb(254_106_0_/_0.08)] p-5 sm:p-7">
-              <p className="bearified-kicker">
-                Unlocked
-              </p>
-              <h2 className="bearified-display mt-4 text-6xl leading-none">
-                {copy.headline}
-              </h2>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--bearified-muted)]">
-                {copy.body}
-              </p>
-
-              <div className="mt-8 grid gap-3">
-                {copy.bullets.map((item) => (
-                  <div
-                    key={item}
-                    className="bearified-panel-soft flex items-start gap-3 p-4"
-                  >
-                    <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--bearified-accent)]" />
-                    <p className="text-sm leading-6 text-white/74">{item}</p>
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                href="/holders/dashboard"
-                className="bearified-button mt-6 w-full px-4 py-3 sm:w-fit"
-              >
-                Post feedback from this room
-                <BadgeCheck className="h-4 w-4" />
-              </Link>
-
-              <div className="bearified-panel-soft mt-6 p-4">
-                <p className="bearified-kicker">
-                  Community channels
-                </p>
-                <p className="mt-3 text-sm leading-6 text-[var(--bearified-muted)]">
-                  Use these links for the live Telegram and Discord surfaces
-                  attached to this holder room.
-                </p>
-                <div className="mt-4">
-                  <CommunityLinkButtons links={tier.communityLinks} />
-                </div>
-              </div>
-
-              <div className="mt-8 grid gap-4 lg:grid-cols-2">
-                <RoomSection title="Room utility" items={copy.utility} />
-                <RoomSection title="Build queue" items={copy.next} />
-              </div>
-            </section>
-
-            <aside className="bearified-panel p-5 sm:p-7">
-              <p className="bearified-kicker">
-                Session wallet
-              </p>
-              <div className="mt-5 grid gap-3">
-                <MetricCard
-                  label="Wallet"
-                  value={`${holderProfile.walletAddress.slice(0, 6)}...${holderProfile.walletAddress.slice(-4)}`}
-                />
-                <MetricCard
-                  label="Effective holding"
-                  value={formatHolderPercent(holderProfile.holderPercent)}
-                />
-                <MetricCard
-                  label="Liquid $BEARCO"
-                  value={formatTokenAmount(holderProfile.balance.uiAmountString)}
-                />
-                <MetricCard
-                  label="Streamflow locked"
-                  value={
-                    holderProfile.lockedBalance.amountAtomic !== "0"
-                      ? `${formatTokenAmount(holderProfile.lockedBalance.uiAmountString)} / ${formatHolderPercent(holderProfile.lockedBalance.holderPercent)}`
-                      : "0"
-                  }
-                />
-              </div>
-            </aside>
-          </div>
+          unlockedRoom
         ) : (
           <BearcoHolderGate
             requiredPercent={tier.thresholdPercent}
             title={tier.title}
-          />
+          >
+            {unlockedRoom}
+          </BearcoHolderGate>
         )}
       </div>
     </main>
+  );
+}
+
+function HolderRoomUnlockedContent({
+  copy,
+  holderProfile,
+  tier,
+}: {
+  copy: (typeof roomCopy)[keyof typeof roomCopy];
+  holderProfile: Awaited<ReturnType<typeof getBearcoHolderProfile>> | null;
+  tier: NonNullable<ReturnType<typeof getHolderTierByKey>>;
+}) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+      <section className="border border-[var(--bearified-accent)] bg-[rgb(254_106_0_/_0.08)] p-5 sm:p-7">
+        <p className="bearified-kicker">
+          Unlocked
+        </p>
+        <h2 className="bearified-display mt-4 text-6xl leading-none">
+          {copy.headline}
+        </h2>
+        <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--bearified-muted)]">
+          {copy.body}
+        </p>
+
+        <div className="mt-8 grid gap-3">
+          {copy.bullets.map((item) => (
+            <div
+              key={item}
+              className="bearified-panel-soft flex items-start gap-3 p-4"
+            >
+              <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--bearified-accent)]" />
+              <p className="text-sm leading-6 text-white/74">{item}</p>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          href="/holders/dashboard"
+          className="bearified-button mt-6 w-full px-4 py-3 sm:w-fit"
+        >
+          Post feedback from this room
+          <BadgeCheck className="h-4 w-4" />
+        </Link>
+
+        <div className="bearified-panel-soft mt-6 p-4">
+          <p className="bearified-kicker">
+            Community channels
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[var(--bearified-muted)]">
+            Use these links for the live Telegram and Discord surfaces attached
+            to this holder room.
+          </p>
+          <div className="mt-4">
+            <CommunityLinkButtons links={tier.communityLinks} />
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-4 lg:grid-cols-2">
+          <RoomSection title="Room utility" items={copy.utility} />
+          <RoomSection title="Build queue" items={copy.next} />
+        </div>
+      </section>
+
+      <aside className="bearified-panel p-5 sm:p-7">
+        <p className="bearified-kicker">
+          Session wallet
+        </p>
+        <div className="mt-5 grid gap-3">
+          {holderProfile ? (
+            <>
+              <MetricCard
+                label="Wallet"
+                value={`${holderProfile.walletAddress.slice(0, 6)}...${holderProfile.walletAddress.slice(-4)}`}
+              />
+              <MetricCard
+                label="Effective holding"
+                value={formatHolderPercent(holderProfile.holderPercent)}
+              />
+              <MetricCard
+                label="Liquid $BEARCO"
+                value={formatTokenAmount(holderProfile.balance.uiAmountString)}
+              />
+              <MetricCard
+                label="Streamflow locked"
+                value={
+                  holderProfile.lockedBalance.amountAtomic !== "0"
+                    ? `${formatTokenAmount(holderProfile.lockedBalance.uiAmountString)} / ${formatHolderPercent(holderProfile.lockedBalance.holderPercent)}`
+                    : "0"
+                }
+              />
+            </>
+          ) : (
+            <>
+              <MetricCard label="Room" value={tier.shortTitle} />
+              <MetricCard label="Access" value="Signed holder session" />
+            </>
+          )}
+        </div>
+      </aside>
+    </div>
   );
 }
 

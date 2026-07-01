@@ -25,6 +25,8 @@ import {
   type HolderTier,
 } from "@/lib/bearco";
 import { isBearcoPrivyEnabled } from "@/components/BearcoPrivyProvider";
+import { BearcoDisconnectedClaimPanel } from "@/components/BearcoDisconnectedClaimPanel";
+import { createBearcoClaimMessage } from "@/lib/bearco-client-claim";
 
 const BearcoPrivySocialConnectors = dynamic(
   () =>
@@ -145,22 +147,16 @@ function hasStreamflowLock(profile: HolderProfileResponse): boolean {
   return profile.lockedBalance.amountAtomic !== "0";
 }
 
-function signedDisplayName(displayName: string): string {
-  const cleaned = displayName.trim().replace(/\s+/g, " ").slice(0, 48);
-  return cleaned.length >= 2 ? cleaned : "holder";
-}
-
 function createClaimMessage(input: {
+  claimCode?: string;
+  issuedAt?: string;
   walletAddress: string;
   displayName: string;
 }): string {
-  return [
-    "Bearo $BEARCO holder profile",
-    `Wallet: ${input.walletAddress}`,
-    `Display Name: ${signedDisplayName(input.displayName)}`,
-    `Domain: ${window.location.host}`,
-    `Issued At: ${new Date().toISOString()}`,
-  ].join("\n");
+  return createBearcoClaimMessage({
+    ...input,
+    host: window.location.host,
+  });
 }
 
 type SocialProvider = "x" | "telegram" | "discord";
@@ -442,6 +438,115 @@ export function useBearcoHolder() {
     if (wallet) await loadProfile(wallet);
   }, [loadProfile, lookupWallet, walletAddress]);
 
+  const claimProfileWithSignature = useCallback(async (input: {
+    displayName: string;
+    message: string;
+    signature: string;
+    successMessage: string;
+    walletAddress: string;
+  }) => {
+    if (!isValidSolanaAddress(input.walletAddress)) {
+      setError("Enter a valid Solana wallet address.");
+      return;
+    }
+    if (!input.message.trim() || !input.signature.trim()) {
+      setError("Paste the signed message proof before claiming.");
+      return;
+    }
+
+    setClaiming(true);
+    setError(null);
+    setStatus(null);
+
+    try {
+      const response = await fetch("/api/bearco/claim-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: input.walletAddress,
+          message: input.message,
+          signature: input.signature,
+          displayName: input.displayName,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Profile claim failed.");
+      }
+
+      if (result.sessionIssued && result.persisted) {
+        setStatus(input.successMessage);
+      } else if (result.sessionIssued) {
+        setStatus("Signature verified for this browser session.");
+        setError(
+          "Profile storage is not ready yet. Apply the Supabase holder migration before linking socials or posting feedback.",
+        );
+      } else {
+        setStatus(
+          "Signature verified. Add a session secret to unlock holder rooms and social auth.",
+        );
+      }
+      setSessionReady(Boolean(result.sessionIssued));
+      setSessionWalletAddress(result.sessionIssued ? input.walletAddress : "");
+      setWalletAddress(input.walletAddress);
+      setLookupWallet(input.walletAddress);
+      window.localStorage.setItem(STORAGE_KEY, input.walletAddress);
+      await loadProfile(input.walletAddress);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Profile claim failed.");
+    } finally {
+      setClaiming(false);
+    }
+  }, [loadProfile]);
+
+  const claimProfileWithMemo = useCallback(async (input: {
+    displayName: string;
+    message: string;
+    transactionSignature: string;
+    walletAddress: string;
+  }) => {
+    if (!isValidSolanaAddress(input.walletAddress)) {
+      setError("Enter a valid Solana wallet address.");
+      return;
+    }
+    if (!input.message.trim() || !input.transactionSignature.trim()) {
+      setError("Paste the Solana Memo transaction signature before claiming.");
+      return;
+    }
+
+    setClaiming(true);
+    setError(null);
+    setStatus(null);
+
+    try {
+      const response = await fetch("/api/bearco/claim-profile/memo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Memo claim failed.");
+      }
+
+      setStatus(
+        result.persisted
+          ? "Memo proof verified and the public holder profile is claimed. Use offline signed-message proof to open private rooms in this browser."
+          : "Memo proof verified. Holder storage is not ready yet, so the profile was not persisted.",
+      );
+      setSessionReady(false);
+      setSessionWalletAddress("");
+      setWalletAddress(input.walletAddress);
+      setLookupWallet(input.walletAddress);
+      window.localStorage.setItem(STORAGE_KEY, input.walletAddress);
+      await loadProfile(input.walletAddress);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Memo claim failed.");
+    } finally {
+      setClaiming(false);
+    }
+  }, [loadProfile]);
+
   const claimProfile = useCallback(async () => {
     const provider = getProvider();
     if (!provider || !walletAddress || !connected) {
@@ -469,44 +574,25 @@ export function useBearcoHolder() {
       const signature =
         signed instanceof Uint8Array ? signed : signed.signature;
 
-      const response = await fetch("/api/bearco/claim-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress,
-          message,
-          signature: bytesToBase64(signature),
-          displayName,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || "Profile claim failed.");
-      }
-
-      if (result.sessionIssued && result.persisted) {
-        setStatus(
+      await claimProfileWithSignature({
+        walletAddress,
+        message,
+        signature: bytesToBase64(signature),
+        displayName,
+        successMessage:
           "Profile signed. Social auth and holder rooms are unlocked for this browser session.",
-        );
-      } else if (result.sessionIssued) {
-        setStatus("Signature verified for this browser session.");
-        setError(
-          "Profile storage is not ready yet. Apply the Supabase holder migration before linking socials or posting feedback.",
-        );
-      } else {
-        setStatus(
-          "Signature verified. Add a session secret to unlock holder rooms and social auth.",
-        );
-      }
-      setSessionReady(Boolean(result.sessionIssued));
-      setSessionWalletAddress(result.sessionIssued ? walletAddress : "");
-      await loadProfile(walletAddress);
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Profile claim failed.");
     } finally {
       setClaiming(false);
     }
-  }, [connected, displayName, loadProfile, walletAddress]);
+  }, [
+    claimProfileWithSignature,
+    connected,
+    displayName,
+    walletAddress,
+  ]);
 
   return {
     walletAddress,
@@ -527,6 +613,8 @@ export function useBearcoHolder() {
     refresh,
     loadProfile,
     claimProfile,
+    claimProfileWithMemo,
+    claimProfileWithSignature,
   };
 }
 
@@ -619,8 +707,8 @@ export function SocialAuthPanel({
 
       {!canConnect && (
         <p className="mt-3 text-xs leading-5 text-[var(--bearified-muted)]">
-          Sign the holder profile with the connected wallet before linking X,
-          Telegram, or Discord.
+          Sign the holder profile with a connected wallet or offline signature
+          before linking X, Telegram, or Discord.
         </p>
       )}
     </div>
@@ -661,7 +749,8 @@ export function BearcoHolderPortal() {
           {!holder.providerReady && (
             <p className="bearified-panel-soft bearified-mono p-4 text-xs leading-6 text-[var(--bearified-muted)]">
               No injected Solana wallet was detected in this Chrome profile.
-              You can still inspect a public wallet below.
+              You can still inspect a public wallet below or claim without
+              connecting by using offline proof.
             </p>
           )}
 
@@ -711,6 +800,8 @@ export function BearcoHolderPortal() {
               {holder.claiming ? "Waiting for signature..." : "Sign profile"}
             </button>
           </div>
+
+          <BearcoDisconnectedClaimPanel holder={holder} />
 
           <SocialAuthPanel holder={holder} returnTo="/holders" />
         </div>

@@ -10,7 +10,8 @@ type SocialSurface =
   | "dashboard"
   | "liquidity"
   | "tier"
-  | "refer";
+  | "refer"
+  | "pay";
 
 interface BearoSocialMetadataOptions {
   title: string;

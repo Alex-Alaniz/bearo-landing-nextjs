@@ -77,6 +77,20 @@ function getCardCopy(
         footer: "bearo.cash",
       };
     }
+    case "pay": {
+      const to = sanitizeCardParam(searchParams.get("to"));
+      const amount = sanitizeCardParam(searchParams.get("amount"));
+      const token = sanitizeCardParam(searchParams.get("token")) || "USDC";
+      return {
+        eyebrow: "BEARO PAYMENT REQUEST",
+        title: to ? `Pay @${to}` : "Pay with Bearo",
+        body: amount
+          ? `@${to || "someone"} is requesting $${amount} ${token} on Bearo — instant, gasless crypto payments.`
+          : "You have a payment request on Bearo — instant, gasless crypto payments.",
+        badges: ["Instant payments", "Zero gas fees", "Mobile app"],
+        footer: "bearo.cash/pay",
+      };
+    }
     default:
       return {
         eyebrow: "BEARIFIED INSTANT PAYMENTS",

@@ -31,6 +31,14 @@ function getCardCopy(
         badges: ["Wallet verified", "X / Telegram / Discord", "1% to 10% rooms"],
         footer: "bearo.cash/holders",
       };
+    case "holder-radar":
+      return {
+        eyebrow: "$BEARCO HOLDER RADAR",
+        title: "See the Holders",
+        body: "Ranked wallets, on-chain flow, holding age, and a non-binding airdrop watch signal.",
+        badges: ["Public wallets", "Helius indexed", "50%+ watch"],
+        footer: "bearo.cash/holders/live",
+      };
     case "tokenomics":
       return {
         eyebrow: "$BEARCO TOKENOMICS",

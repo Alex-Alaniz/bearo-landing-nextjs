@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BarChart3 } from "lucide-react";
 import {
   BearcoHolderPortal,
   HolderRoomLinks,
@@ -71,6 +71,31 @@ export default function HoldersPage() {
             connect authenticated X, Telegram, and Discord identities to
             holder-gated rooms for 1%, 2%, 3%, 5%, and 10% holders.
           </p>
+        </section>
+
+        <section className="mb-8 bearified-panel-soft p-5 sm:p-6">
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="bearified-kicker">
+                New / Holder Radar
+              </p>
+              <h2 className="bearified-display mt-3 text-5xl leading-none">
+                See holders, flows, and watch scores.
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--bearified-muted)]">
+                The new public analytics page keeps profile claiming optional
+                while showing ranked wallets, holding age, indexed transfers,
+                and the non-binding 50%+ airdrop watch signal.
+              </p>
+            </div>
+            <Link
+              href="/holders/live"
+              className="bearified-button w-fit px-5 py-4"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Open radar
+            </Link>
+          </div>
         </section>
 
         <BearcoHolderPortal />

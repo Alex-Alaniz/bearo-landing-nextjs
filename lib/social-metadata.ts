@@ -7,6 +7,7 @@ type SocialSurface =
   | "home"
   | "tokenomics"
   | "holders"
+  | "holder-radar"
   | "dashboard"
   | "liquidity"
   | "tier"

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Platform } from '../../../lib/deviceDetection';
 import { addBetaTester, isConfigured as isTestFlightConfigured } from '../../../lib/appStoreConnect';
+import { queueReferralAirdrop } from '../../../lib/referral-airdrop';
 
 // Use service role key - only available on server
 function getSupabase() {
@@ -162,6 +163,23 @@ export async function POST(req: NextRequest) {
         });
     } catch {
       // Non-fatal - airdrop allocation insert failed
+    }
+
+    // Queue referral airdrop for the referrer (non-fatal, manual review)
+    if (validatedReferrer) {
+      try {
+        const { data: referrerRow } = await supabase
+          .from('waitlist')
+          .select('email')
+          .eq('referral_code', validatedReferrer)
+          .maybeSingle();
+
+        if (referrerRow?.email) {
+          await queueReferralAirdrop(supabase, referrerRow.email, normalizedEmail, 'signup');
+        }
+      } catch (airdropError) {
+        console.warn('[signup] Referrer airdrop queue error (non-fatal):', airdropError);
+      }
     }
 
     // Trigger TestFlight invite for iOS users (BLOCKING - must complete before response)

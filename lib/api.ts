@@ -26,16 +26,6 @@ const TIER_MAX_SPOTS: Record<number, number> = {
   6: 4000  // Community
 };
 
-// Base token amounts per tier (for airdrop)
-const TIER_BASE_AMOUNTS: Record<number, number> = {
-  1: 50000,  // OG Founder
-  2: 10000,  // Alpha Insider
-  3: 2500,   // Beta Crew
-  4: 1000,   // Early Adopter
-  5: 500,    // Pioneer Wave
-  6: 100     // Community
-};
-
 interface InitiateResponse {
   success: boolean;
   message: string;
@@ -50,16 +40,6 @@ interface VerifyResponse {
   userId: string;
   referralCode?: string;
   referralLink?: string;
-}
-
-// Generate referral code matching database format: BEAR + 4 alphanumeric chars
-function generateReferralCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding confusing chars (0, O, I, L, 1)
-  let result = 'BEAR';
-  for (let i = 0; i < 4; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
 }
 
 function storeLocalFallback(authResult: ThirdwebAuthResult, email: string, tierNumber: number, tierName: string, referralCode: string, referralLink: string) {
@@ -157,19 +137,6 @@ export async function initiateWaitlistAuth(email: string): Promise<InitiateRespo
     console.error('Thirdweb auth error:', error);
     throw error;
   }
-}
-
-// Validate referrer code exists
-async function validateReferrerCode(code: string): Promise<boolean> {
-  if (!supabase || !code) return false;
-
-  const { data } = await supabase
-    .from('airdrop_allocations')
-    .select('referral_code')
-    .eq('referral_code', code.toUpperCase())
-    .maybeSingle();
-
-  return !!data;
 }
 
 // Verify OTP and claim tier - syncs with Supabase database
@@ -307,33 +274,6 @@ export async function verifyAndClaimTier(
       // Store local fallback
       storeLocalFallback(authResult, email, tierNumber, tierName, referralCode, referralLink);
 
-      // If user signed up with a referral code, trigger airdrop to referrer
-      if (referredBy && supabase) {
-        try {
-          const referrerCode = referredBy.toUpperCase().trim();
-          // Look up referrer's email from their code
-          const { data: referrerData } = await supabase
-            .from('airdrop_allocations')
-            .select('email')
-            .eq('referral_code', referrerCode)
-            .single();
-
-          if (referrerData?.email) {
-            // Trigger airdrop to referrer
-            const airdropResult = await triggerReferralAirdrop(
-              referrerData.email,
-              email.toLowerCase(),
-              'signup'
-            );
-            if (airdropResult.success) {
-              console.log(`🪂 Signup airdrop sent to referrer ${referrerData.email}`);
-            }
-          }
-        } catch (referrerError) {
-          console.warn('[Signup] Referrer airdrop error (non-fatal):', referrerError);
-        }
-      }
-
       return {
         success: true,
         tier: tierName,
@@ -448,78 +388,6 @@ export async function checkExistingUser(email: string): Promise<ExistingUserInfo
   }
 }
 
-// Queue airdrop for manual review instead of instant send (anti-sybil measure)
-const BEARCO_TOKEN_ADDRESS = 'FdFUGJSzJXDCZemQbkBwYs3tZEvixyEc8cZfRqJrpump';
-const DEFAULT_AIRDROP_AMOUNT = '500000000'; // 500 tokens (6 decimals)
-
-async function triggerReferralAirdrop(
-  referrerEmail: string,
-  refereeEmail: string,
-  referralType: 'signup' | 'retroactive'
-): Promise<{ success: boolean; queued?: boolean }> {
-  try {
-    if (!supabase) {
-      console.warn('[triggerAirdrop] Supabase not configured');
-      return { success: false };
-    }
-
-    console.log(`📋 Queuing ${referralType} airdrop for referrer: ${referrerEmail}`);
-
-    // Check if referrer is flagged/banned
-    const { data: flaggedAccount } = await supabase
-      .from('flagged_accounts')
-      .select('is_banned, flag_type')
-      .eq('email', referrerEmail.toLowerCase())
-      .maybeSingle();
-
-    if (flaggedAccount?.is_banned) {
-      console.warn(`🚫 Referrer ${referrerEmail} is banned - airdrop blocked`);
-      return { success: false };
-    }
-
-    // Get referrer's wallet address
-    const { data: referrerData } = await supabase
-      .from('waitlist')
-      .select('solana_wallet_address')
-      .eq('email', referrerEmail.toLowerCase())
-      .single();
-
-    if (!referrerData?.solana_wallet_address) {
-      console.warn(`⚠️ Referrer ${referrerEmail} has no wallet - cannot queue airdrop`);
-      return { success: false };
-    }
-
-    // Queue the airdrop for manual review
-    const { error: queueError } = await supabase
-      .from('airdrop_queue')
-      .insert({
-        referrer_email: referrerEmail.toLowerCase(),
-        referee_email: refereeEmail.toLowerCase(),
-        referrer_wallet: referrerData.solana_wallet_address,
-        amount: DEFAULT_AIRDROP_AMOUNT,
-        token_address: BEARCO_TOKEN_ADDRESS,
-        referral_type: referralType,
-        status: flaggedAccount ? 'pending' : 'pending', // Could auto-approve non-flagged later
-        notes: flaggedAccount ? `Referrer flagged as: ${flaggedAccount.flag_type}` : null,
-      });
-
-    if (queueError) {
-      console.error('[triggerAirdrop] Queue error:', queueError);
-      return { success: false };
-    }
-
-    console.log(`✅ Airdrop queued for review: ${referrerEmail}`);
-
-    return {
-      success: true,
-      queued: true
-    };
-  } catch (error) {
-    console.error('[triggerAirdrop] Error:', error);
-    return { success: false };
-  }
-}
-
 // Link a referral code retroactively (for users who signed up without a referral)
 export interface LinkReferralResult {
   success: boolean;
@@ -534,158 +402,30 @@ export async function linkReferralRetroactively(
 ): Promise<LinkReferralResult> {
   console.log('[linkReferral] Linking referral for:', userEmail, 'to referrer:', referrerCode);
 
-  if (!supabase) {
-    return { success: false, message: 'Database not available' };
-  }
-
-  const normalizedEmail = userEmail.toLowerCase().trim();
-  const normalizedCode = referrerCode.toUpperCase().trim();
-
   try {
-    // 1. Check if user exists
-    const { data: userData, error: userError } = await supabase
-      .from('waitlist')
-      .select('email, referral_code, referred_by, linked_referrer_code')
-      .eq('email', normalizedEmail)
-      .maybeSingle();
-
-    if (userError || !userData) {
-      return { success: false, message: 'User not found. Please sign up first.' };
-    }
-
-    // 2. Prevent self-referral
-    if (userData.referral_code === normalizedCode) {
-      return { success: false, message: 'You cannot use your own referral code.' };
-    }
-
-    // 3. Check if already has a referrer
-    if (userData.referred_by || userData.linked_referrer_code) {
-      return {
-        success: false,
-        message: 'You already have a linked referral code.'
-      };
-    }
-
-    // 4. Validate referrer code exists
-    const { data: referrerData, error: referrerError } = await supabase
-      .from('airdrop_allocations')
-      .select('referral_code, email')
-      .eq('referral_code', normalizedCode)
-      .maybeSingle();
-
-    if (referrerError || !referrerData) {
-      return { success: false, message: 'Invalid referral code. Please check and try again.' };
-    }
-
-    // 5. Prevent circular referral (A refers B, B tries to refer A)
-    const { data: circularCheck } = await supabase
-      .from('airdrop_allocations')
-      .select('referred_by_code')
-      .eq('email', referrerData.email)
-      .maybeSingle();
-
-    if (circularCheck?.referred_by_code === userData.referral_code) {
-      return { success: false, message: 'Circular referrals are not allowed.' };
-    }
-
-    // 6. Update waitlist_sync with linked referrer
-    const { error: updateWaitlistError } = await supabase
-      .from('waitlist')
-      .update({
-        linked_referrer_code: normalizedCode,
-        linked_at: new Date().toISOString(),
-        link_verified: true,
-      })
-      .eq('email', normalizedEmail);
-
-    if (updateWaitlistError) {
-      console.error('[linkReferral] Waitlist update error:', updateWaitlistError);
-      return { success: false, message: 'Failed to link referral. Please try again.' };
-    }
-
-    // 7. Update airdrop_allocations with retroactive referrer
-    const { error: updateAirdropError } = await supabase
-      .from('airdrop_allocations')
-      .update({
-        referred_by_code: normalizedCode,
-        referred_at: new Date().toISOString(),
-        link_verified: true,
-        link_verified_at: new Date().toISOString(),
-      })
-      .eq('email', normalizedEmail);
-
-    if (updateAirdropError) {
-      console.error('[linkReferral] Airdrop update error:', updateAirdropError);
-      // Non-fatal - waitlist was updated
-    }
-
-    // 8. Increment referrer's count
-    const { error: incrementError } = await supabase.rpc('increment_referral_count', {
-      referrer_code: normalizedCode,
+    // All validation and writes happen server-side (service role)
+    const response = await fetch(`${API_BASE}/link-referral`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: userEmail.toLowerCase().trim(),
+        referrerCode: referrerCode.toUpperCase().trim(),
+      }),
     });
 
-    if (incrementError) {
-      // Try manual increment if RPC doesn't exist
-      console.warn('[linkReferral] RPC failed, trying manual increment:', incrementError);
-      const { data: currentData } = await supabase
-        .from('airdrop_allocations')
-        .select('referral_count')
-        .eq('referral_code', normalizedCode)
-        .single();
+    const result = await response.json().catch(() => ({}));
 
-      if (currentData) {
-        await supabase
-          .from('airdrop_allocations')
-          .update({ referral_count: (currentData.referral_count || 0) + 1 })
-          .eq('referral_code', normalizedCode);
-      }
+    if (!response.ok) {
+      return { success: false, message: result.error || 'Failed to link referral. Please try again.' };
     }
 
-    // 9. Record the completion (for audit trail)
-    try {
-      await supabase
-        .from('referral_completions')
-        .insert({
-          referrer_code: normalizedCode,
-          referee_code: userData.referral_code,
-          referee_email: normalizedEmail,
-          completion_type: 'retroactive',
-          week_number: 1, // Current week
-          base_reward: 500, // Retroactive referral reward
-          multiplier: 1.5, // Early bird multiplier
-          final_reward: 750,
-          verified: true,
-          verified_at: new Date().toISOString(),
-        });
-    } catch (completionError) {
-      console.warn('[linkReferral] Completion record error (non-fatal):', completionError);
-    }
-
-    console.log(`✅ Retroactive referral linked: ${normalizedEmail} -> ${normalizedCode}`);
-
-    // 10. Trigger airdrop to referrer
-    let airdropSent = false;
-    try {
-      const airdropResult = await triggerReferralAirdrop(
-        referrerData.email,
-        normalizedEmail,
-        'retroactive'
-      );
-      airdropSent = airdropResult.success;
-      if (airdropSent) {
-        console.log(`🪂 Airdrop sent to referrer ${referrerData.email}`);
-      }
-    } catch (airdropError) {
-      console.warn('[linkReferral] Airdrop trigger error (non-fatal):', airdropError);
-    }
+    console.log(`✅ Retroactive referral linked: ${userEmail} -> ${result.referrerCode}`);
 
     return {
       success: true,
-      message: airdropSent
-        ? 'Referral linked successfully! Your referrer has been queued for a $BEARCO airdrop.'
-        : 'Referral linked successfully! Both you and your referrer will receive bonus tokens.',
-      referrerCode: normalizedCode,
-      airdropSent,
+      message: result.message || 'Referral linked successfully!',
+      referrerCode: result.referrerCode,
+      airdropSent: result.airdropSent,
     };
   } catch (error) {
     console.error('[linkReferral] Error:', error);
@@ -706,64 +446,28 @@ export async function saveWalletAddress(
 ): Promise<SaveWalletResult> {
   console.log('[saveWalletAddress] Saving wallet for:', email, 'wallet:', walletAddress.substring(0, 8) + '...');
 
-  if (!supabase) {
-    return { success: false, message: 'Database not available' };
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-  const trimmedWallet = walletAddress.trim();
-
   try {
-    // SECURITY: First verify that user has completed thirdweb authentication
-    const { data: authCheck } = await supabase
-      .from('waitlist')
-      .select('thirdweb_user_id')
-      .eq('email', normalizedEmail)
-      .single();
+    // Auth check, wallet validation, and writes happen server-side (service role)
+    const response = await fetch(`${API_BASE}/link-wallet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.toLowerCase().trim(),
+        walletAddress: walletAddress.trim(),
+      }),
+    });
 
-    if (!authCheck) {
-      console.error('[saveWalletAddress] User not found:', normalizedEmail);
-      return { success: false, message: 'User not found. Please complete signup first.' };
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return { success: false, message: result.error || 'Failed to save wallet address. Please try again.' };
     }
 
-    if (!authCheck.thirdweb_user_id) {
-      console.error('[saveWalletAddress] BLOCKED: Attempt to set wallet without auth for:', normalizedEmail);
-      return { success: false, message: 'Authentication required. Please verify your email first.' };
-    }
-
-    // Update base waitlist table (not the view) with wallet address
-    // Double-check thirdweb_user_id matches to prevent spoofing
-    const { error: updateError } = await supabase
-      .from('waitlist')
-      .update({
-        solana_wallet_address: trimmedWallet,
-        wallet_set_at: new Date().toISOString(),
-      })
-      .eq('email', normalizedEmail)
-      .eq('thirdweb_user_id', authCheck.thirdweb_user_id);
-
-    if (updateError) {
-      console.error('[saveWalletAddress] Update error:', updateError);
-      return { success: false, message: 'Failed to save wallet address. Please try again.' };
-    }
-
-    // Also update airdrop_allocations if exists (uses 'wallet_address' not 'solana_wallet_address')
-    try {
-      await supabase
-        .from('airdrop_allocations')
-        .update({
-          wallet_address: trimmedWallet,
-        })
-        .eq('email', normalizedEmail);
-    } catch (airdropError) {
-      console.warn('[saveWalletAddress] Airdrop table update (non-fatal):', airdropError);
-    }
-
-    console.log(`✅ Wallet saved for ${normalizedEmail}: ${trimmedWallet}`);
+    console.log(`✅ Wallet saved for ${email}`);
 
     return {
       success: true,
-      message: 'Wallet address saved successfully!',
+      message: result.message || 'Wallet address saved successfully!',
     };
   } catch (error) {
     console.error('[saveWalletAddress] Error:', error);
